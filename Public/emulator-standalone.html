@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GBA Emulator - EmulatorJS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .warning {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #ffc107;
+        }
+
+        #game-container {
+            width: 100%;
+            aspect-ratio: 3 / 2;
+            min-height: 400px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            margin-bottom: 30px;
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 30px;
+            margin-top: 20px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        .section h3 {
+            color: #a9b7ff;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .section p, .section li {
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        ul {
+            list-style-position: inside;
+            margin-left: 20px;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #ffc107;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .control-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .control-item strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 GBA Emulator</h1>
+            <p>Play Game Boy Advance games directly in your browser</p>
+        </header>
+
+        <div class="warning">
+            <strong>⚠️ Setup Required:</strong> Download EmulatorJS files and place your ROM in the games folder. See instructions below.
+        </div>
+
+        <!-- Emulator Container -->
+        <div id="game-container"></div>
+
+        <!-- Instructions -->
+        <div class="instructions">
+            <div class="section">
+                <h2>📦 Setup Instructions</h2>
+            </div>
+
+            <div class="section">
+                <h3>1. Download EmulatorJS Files</h3>
+                <p>Visit: <a href="https://github.com/EmulatorJS/EmulatorJS" target="_blank">EmulatorJS GitHub</a></p>
+                <p>Download and place the following in <code>emulator/data/</code>:</p>
+                <ul>
+                    <li><code>loader.js</code> - Main loader script</li>
+                    <li><code>gba.wasm</code> - GBA WebAssembly core</li>
+                    <li><code>gba.js</code> - Core wrapper JavaScript</li>
+                    <li>Supporting data files from the repository</li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h3>2. Add Your ROM</h3>
+                <p>Place your legally obtained <code>.gba</code> ROM file in:</p>
+                <p style="margin-left: 20px; color: #ffc107;"><code>games/pokemon.gba</code></p>
+                <p style="margin-top: 10px; opacity: 0.7;">⚠️ Only use ROMs you legally own</p>
+            </div>
+
+            <div class="section">
+                <h3>3. Required Directory Structure</h3>
+                <pre style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; overflow-x: auto;">
+project/
+├── emulator/
+│   └── data/
+│       ├── loader.js
+│       ├── gba.wasm
+│       ├── gba.js
+│       └── data/
+│           └── (additional files)
+└── games/
+    └── pokemon.gba
+                </pre>
+            </div>
+
+            <div class="section">
+                <h3>4. Controls</h3>
+                <div class="controls-grid">
+                    <div class="control-item">
+                        <strong>D-Pad</strong>
+                        <span>Arrow Keys</span>
+                    </div>
+                    <div class="control-item">
+                        <strong>A Button</strong>
+                        <span>Z Key</span>
+                    </div>
+                    <div class="control-item">
+                        <strong>B Button</strong>
+                        <span>X Key</span>
+                    </div>
+                    <div class="control-item">
+                        <strong>Start</strong>
+                        <span>Enter</span>
+                    </div>
+                    <div class="control-item">
+                        <strong>Select</strong>
+                        <span>Shift</span>
+                    </div>
+                    <div class="control-item">
+                        <strong>L / R Buttons</strong>
+                        <span>A / S Keys</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>5. Features</h3>
+                <ul>
+                    <li>Fullscreen mode (button in emulator UI)</li>
+                    <li>Save/Load states (menu in emulator)</li>
+                    <li>Fast forward and rewind</li>
+                    <li>Game controller support</li>
+                    <li>Persistent saves in browser LocalStorage</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- EmulatorJS Configuration -->
+    <script>
+        // Configure EmulatorJS
+        EJS_player = '#game-container';
+        EJS_core = 'gba';
+        EJS_gameUrl = 'games/pokemon.gba'; // Change this to your ROM file name
+        EJS_pathtodata = 'emulator/data/';
+        EJS_startOnLoaded = true;
+    </script>
+
+    <!-- Load EmulatorJS -->
+    <script src="emulator/data/loader.js"></script>
+</body>
+</html>

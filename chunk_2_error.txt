@@ -1,0 +1,291 @@
+[
+  {
+    "question_text": "In a store, the cost of standard quality coffee beans is half that of premium coffee beans. A merchant purchases 80 kg of premium beans and 40 kg of standard beans, and subsequently sells the entire stock at a unified price that is 10% less than the purchase price of the premium beans. What is the merchant's total percentage profit?",
+    "options": [
+      "6%",
+      "8%",
+      "10%",
+      "12%"
+    ],
+    "correct_answer": "8%",
+    "explanation": "Let $P$ be the price per kg of premium beans. The price of standard beans is $0.5P$.\n1. Calculate Total Cost Price (CP):\n$CP = (80 \\times P) + (40 \\times 0.5P) = 80P + 20P = 100P$.\n2. Calculate Selling Price (SP) per kg:\nThe common SP is 10% less than $P$: $SP_{unit} = P \\times 0.9 = 0.9P$.\n3. Calculate Total Selling Price (SP):\nTotal quantity is $80 + 40 = 120$ kg.\n$SP = 120 \\times 0.9P = 108P$.\n4. Calculate Profit Percentage:\nProfit Percentage $= \\frac{SP - CP}{CP} \\times 100 = \\frac{108P - 100P}{100P} \\times 100 = \\frac{8P}{100P} \\times 100 = 8\\%$.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Robert acquires 12 gadgets and marks each with an identical list price (MP). He first sells 8 gadgets at a 20% discount off the list price. He then sells the final 4 gadgets with an additional 25% discount applied to the already discounted price. This results in total revenue of Rs 2112, yielding him a 10% profit overall. If he had sold all gadgets at the full list price (no discounts), what would his percentage profit have been?",
+    "options": [
+      "50",
+      "60",
+      "54",
+      "55"
+    ],
+    "correct_answer": "50",
+    "explanation": "Let MP be the marked price per gadget.\n1. Calculate the CP:\nSince the total profit is 10%, $CP = Total SP / 1.10 = 2112 / 1.1 = 1920$.\n2. Calculate the Total SP based on MP:\nSP for first 8 gadgets (20% discount) $= 8 \\times (0.8 MP) = 6.4 MP$.\nSP for last 4 gadgets (25% off 0.8 MP) $= 4 \\times (0.8 MP \\times 0.75) = 4 \\times (0.6 MP) = 2.4 MP$.\nTotal SP $= 6.4 MP + 2.4 MP = 8.8 MP$.\n3. Find MP:\n$8.8 MP = 2112 \\implies MP = 2112 / 8.8 = 240$.\n4. Calculate Profit if sold at no discount:\nNew SP $= 12 \\times MP = 12 \\times 240 = 2880$.\nNew Profit $= 2880 - 1920 = 960$.\nNew Profit Percentage $= (960 / 1920) \\times 100 = 50\\%.$\n",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A company uses a cost model $C(x) = 240 + 10x + 0.1x^2$ (derived from the scenario) to produce $x$ widgets, which are sold at Rs. 30 each. If demand is unlimited, how many widgets should the company manufacture daily to maximize profit?",
+    "options": [
+      "130",
+      "100",
+      "70",
+      "150",
+      "Cannot be determined"
+    ],
+    "correct_answer": "100",
+    "explanation": "The Selling Price (SP) per unit is Rs 30. The cost function is $C(x) = 240 + 10x + 0.1x^2$.\n1. Define the Revenue and Profit Functions:\nRevenue $R(x) = 30x$.\nProfit $P(x) = R(x) - C(x) = 30x - (240 + 10x + 0.1x^2)$.\n$P(x) = 20x - 0.1x^2 - 240$.\n2. Maximize Profit (using derivative):\n$P(x)$ is a quadratic function opening downwards, so maximum occurs when $P'(x) = 0$.\n$P'(x) = 20 - 0.2x$.\nSet $P'(x) = 0$: $20 - 0.2x = 0$.\n$0.2x = 20 \\implies x = 20 / 0.2 = 100$.\n(Note: The coefficients $b=10$ and $c=0.1$ are calculated from the percentage constraints provided in the original text preamble.)",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Sarah achieved 40% in a competitive test. Following a reevaluation, her score increased by 50%, yet she still fell short of the passing mark by 35 points. If her already reevaluated score were to increase by a further 20%, she would exceed the passing mark by 7 points. What is the required passing percentage for the examination?",
+    "options": [
+      "60",
+      "80",
+      "70",
+      "75"
+    ],
+    "correct_answer": "70",
+    "explanation": "Let $T$ be the total marks and $P$ be the passing score.\n1. Calculate scores relative to $T$:\nInitial Score $S_0 = 0.40 T$.\nPost-review Score $S_1 = 1.50 \\times S_0 = 1.5 \\times 0.4 T = 0.60 T$.\nFinal Score $S_2 = 1.20 \\times S_1 = 1.2 \\times 0.6 T = 0.72 T$.\n2. Set up equations based on passing score $P$:\n$S_1 = P - 35 \\implies 0.60 T = P - 35$ (Eq 1)\n$S_2 = P + 7 \\implies 0.72 T = P + 7$ (Eq 2)\n3. Solve for $T$ (Total Marks):\nSubtracting (Eq 1) from (Eq 2): $(0.72 T - 0.60 T) = (P + 7) - (P - 35)$.\n$0.12 T = 42 \\implies T = 42 / 0.12 = 350$.\n4. Find Passing Score $P$:\nUsing Eq 2: $P = 0.72 T - 7 = 0.72 \\times 350 - 7 = 252 - 7 = 245$.\n5. Find Passing Percentage:\nPassing Percentage $= (P / T) \\times 100 = (245 / 350) \\times 100 = 70\\%.$\n",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A technician invested Rs 50,000 to acquire a workstation and a portable monitor. He sold the workstation achieving a 20% profit, but incurred a 10% loss on the portable monitor. If his net result was a 2% overall profit, what was the initial cost price, in rupees, of the workstation?",
+    "options": [
+      "20000",
+      "30000",
+      "25000",
+      "35000"
+    ],
+    "correct_answer": "20000",
+    "explanation": "Let $D$ be the CP of the desktop (workstation) and $L$ be the CP of the laptop (monitor).\n$D + L = 50,000$.\nTotal Profit $= 2\\%$ of $50,000 = 1000$.\nTotal Profit = (Desktop Profit) - (Laptop Loss).\n$0.20 D - 0.10 L = 1000$.\nSubstitute $L = 50,000 - D$:\n$0.2 D - 0.1 (50,000 - D) = 1000$\n$0.2 D - 5000 + 0.1 D = 1000$\n$0.3 D = 6000$\n$D = 6000 / 0.3 = 20,000$ rupees.\n",
+    "difficulty": "Easy",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "In a community census, 28% of residents are classified as juveniles, with the remaining categorized as seniors. If 65% of the total residents are educated, and 25% of the educated residents are juveniles, what is the percentage of seniors among the uneducated residents? (Nearest integer answer required).",
+    "options": [
+      "62",
+      "55",
+      "59",
+      "66"
+    ],
+    "correct_answer": "66",
+    "explanation": "Assume Total Residents = 100.\n1. Age Groups:\nYoung (Juveniles) = 28. Old (Seniors) = $100 - 28 = 72$.\n2. Literacy Groups:\nLiterate (L) = 65. Illiterate (I) = $100 - 65 = 35$.\n3. Intersections:\nYoung Literates $(Y \\cap L) = 25\\%$ of $65 = 16.25$.\nOld Literates $(O \\cap L) = 65 - 16.25 = 48.75$.\n4. Find Old Illiterates $(O \\cap I)$:\n$O \\cap I = \\text{Total Old} - O \\cap L = 72 - 48.75 = 23.25$.\n5. Calculate Required Percentage:\nPercentage of old people among illiterates $= \\frac{O \\cap I}{I} \\times 100$\n$= \\frac{23.25}{35} \\times 100 \\approx 66.428\\%$.\nNearest integer is 66.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Alan invested Rs 10,000 at 5% simple annual interest (SAI). Precisely two years later, Brenda invested Rs 8,000 at 10% SAI. How many total years, measured from Alan's initial investment date, will it take for their total balances (principal + accrued interest) to become identical?",
+    "options": [
+      "10 years",
+      "11 years",
+      "12 years",
+      "13 years"
+    ],
+    "correct_answer": "12 years",
+    "explanation": "Let $T$ be the time in years since Alan's investment ($T > 2$).\n1. Alan's Accumulated Amount ($A_A$):\n$A_A = P(1 + RT) = 10000 (1 + 0.05 T) = 10000 + 500 T$.\n2. Brenda's Accumulated Amount ($A_B$):\nBrenda's investment period is $T-2$ years.\n$A_B = 8000 (1 + 0.10 (T - 2)) = 8000 + 800(T - 2)$.\n$A_B = 8000 + 800 T - 1600 = 6400 + 800 T$.\n3. Equate Amounts ($A_A = A_B$):\n$10000 + 500 T = 6400 + 800 T$\n$10000 - 6400 = 800 T - 500 T$\n$3600 = 300 T$\n$T = 3600 / 300 = 12$ years.\n",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "In a semester assessment, Chloe achieved 52% and Diana achieved 64%. Chloe's score was 23 points lower, and Diana's score was 34 points higher than the score achieved by Mark. What was the score obtained by Emily, who achieved 84%?",
+    "options": [
+      "357",
+      "417",
+      "439",
+      "399"
+    ],
+    "correct_answer": "399",
+    "explanation": "Let $T$ be the total marks. Let $M$ be Mark's score.\nChloe's score $S_C = 0.52 T$. Diana's score $S_D = 0.64 T$.\n1. Express Mark's score $M$ in two ways:\n$M = S_C + 23 = 0.52 T + 23$.\n$M = S_D - 34 = 0.64 T - 34$.\n2. Solve for Total Marks $T$:\n$0.52 T + 23 = 0.64 T - 34$\n$23 + 34 = 0.64 T - 0.52 T$\n$57 = 0.12 T$\n$T = 57 / 0.12 = 475$.\n3. Calculate Emily's score (84%):\nEmily's score $= 0.84 \\times 475 = 399$.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A vendor purchases 35 kg of flour and determines a list price (MP) designed to achieve a 20% profit. He sells 5 kg at this full list price and 15 kg at a 10% discount. Subsequently, 3 kg of flour is spoiled. He sells the remaining quantity by increasing the original list price by $p$ percent to ensure his total profit is exactly 15%. What is the value of $p$ nearest to?",
+    "options": [
+      "22",
+      "35",
+      "25",
+      "31"
+    ],
+    "correct_answer": "25",
+    "explanation": "Let $C$ be the CP per kg. Total CP $= 35C$.\nTarget Total SP (15% profit) $= 35C \\times 1.15 = 40.25C$.\nOriginal Marked Price $MP = 1.2 C$.\n1. Calculate SP from first two sales:\n$SP_1$ (5 kg at MP) $= 5 \\times 1.2 C = 6 C$.\n$SP_2$ (15 kg at 10% discount) $= 15 \\times (1.2 C \\times 0.9) = 15 \\times 1.08 C = 16.2 C$.\nTotal SP so far $= 6 C + 16.2 C = 22.2 C$.\n2. Calculate Required SP for the remainder ($SP_3$):\nRemaining quantity sold $= 35 - 5 - 15 - 3 = 12$ kg.\n$SP_3 = \\text{Target Total SP} - 22.2 C = 40.25 C - 22.2 C = 18.05 C$.\n3. Find the New Marked Price ($MP_{new}$):\n$MP_{new}$ per kg $= 18.05 C / 12 \\approx 1.504167 C$.\n4. Find $p$ (Percentage increase over original MP):\n$MP_{new} = MP \\times (1 + p/100)$.\n$1.504167 C = 1.2 C \\times (1 + p/100)$.\n$1 + p/100 = 1.504167 / 1.2 \\approx 1.25347$.\n$p/100 = 0.25347 \\implies p \\approx 25.347$.\nNearest integer is 25.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Five horses, Red (R), White (W), Grey (G), Black (B) and Spotted (S) participated in a race. Winning bet pays 4x (3x profit), second pays 3x (2x profit), third returns bet (0 profit), and the rest lose (-1x loss). A bettor places Rs 3000 on R, Rs 2000 on W, and Rs 1000 on B, ending up with zero overall profit or loss. Which of the following cannot be true?",
+    "options": [
+      "At least two horses finished before Spotted",
+      "Red finished last",
+      "There were three horses between Black and Spotted",
+      "There were three horses between White and Red",
+      "Grey came in second"
+    ],
+    "correct_answer": "There were three horses between White and Red",
+    "explanation": "Let $R_p, W_p, B_p$ be the net profit multipliers ($3, 2, 0, -1$ or $-1$) corresponding to R, W, B.\nThe total profit is zero: $3000 R_p + 2000 W_p + 1000 B_p = 0$.\nDividing by 1000: $3 R_p + 2 W_p + B_p = 0$. \nPossible multipliers for R, W, B must be distinct values chosen from {3, 2, 0, -1, -1}.\n\nWe found two valid combinations:\nCase 1: $(R_p, W_p, B_p) = (-1, 0, 3)$. Ranks: B (1st), W (3rd), R (4th or 5th).\nCase 2: $(R_p, W_p, B_p) = (0, -1, 2)$. Ranks: B (2nd), R (3rd), W (4th or 5th).\n\nIf there were three horses between White (W) and Red (R), their positions must be (1st, 5th) or (5th, 1st). This implies either $R_p=3$ or $W_p=3$.\n\n1. Assume $R_p=3$: $3(3) + 2 W_p + B_p = 0 \\implies 9 + 2 W_p + B_p = 0$. Since $W_p$ and $B_p$ are max $2$ and $0$, this sum cannot be zero.\n2. Assume $W_p=3$: $3 R_p + 2(3) + B_p = 0 \\implies 3 R_p + B_p = -6$. Since the minimum $R_p$ is $-1$ and minimum $B_p$ is $-1$, the minimum sum is $3(-1) + (-1) = -4$. This cannot equal -6.\n\nSince neither R nor W can take 1st place, they cannot be separated by three horses. Therefore, option D cannot be true.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Referring to the horse race described above (Q26 setup), suppose, in addition, it is known that Grey came in fourth. Then which of the following cannot be true?",
+    "options": [
+      "Spotted came in first",
+      "Red finished last",
+      "White came in second",
+      "Black came in second",
+      "There was one horse between Black and White"
+    ],
+    "correct_answer": "White came in second",
+    "explanation": "If Grey (G) came in 4th, the profit multiplier for G is $G_p = -1$. The remaining loss position is 5th ($P_5=-1$). The positions {1st, 2nd, 3rd} correspond to multipliers {3, 2, 0}.\n\nWe must satisfy $3 R_p + 2 W_p + B_p = 0$, where $R_p, W_p, B_p$ use three distinct values from $\{3, 2, 0, -1, -1\}$. One horse (R, W, B, or S) must take 5th place (-1 multiplier), and Spotted (S) must take one of the remaining non-loss positions.\n\nWe test option C: Assume White came in second ($W_p=2$).\n$3 R_p + 2(2) + B_p = 0 \\implies 3 R_p + B_p = -4$.\nSince $R_p$ and $B_p$ must be selected from $\{3, 0, -1\}$ (R, W, B must use 1st, 3rd, 5th positions, or S takes one), the maximum value is $3(3) + 3 = 12$. The only way to get $-4$ is if $R_p=-1$ and $B_p=-1$. But only one $-1$ slot remains (5th place) since G is 4th. This is impossible. White cannot finish second under this condition.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "An investment compounded annually becomes Rs. 625 after two years and Rs. 675 after three years. What is the annual compounding interest rate?",
+    "options": [
+      "7%",
+      "8%",
+      "6%",
+      "5%"
+    ],
+    "correct_answer": "8%",
+    "explanation": "Let $A_n$ be the amount after $n$ years and $R$ be the rate of interest.\n$A_3 = A_2 (1 + R)$.\n$675 = 625 (1 + R)$.\n$1 + R = 675 / 625 = 27 / 25 = 1.08$.\n$R = 1.08 - 1 = 0.08$ or $8\\%.$\n",
+    "difficulty": "Easy",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "The annual salary for an employee includes Rs. 90 cash plus a coat. The employee terminates employment after 9 months and is paid Rs. 65 cash along with the coat. Determine the monetary value of the coat.",
+    "options": [
+      "Rs. 10",
+      "Rs. 15",
+      "Rs. 7.50",
+      "Cannot be determined"
+    ],
+    "correct_answer": "Rs. 10",
+    "explanation": "Let $T$ be the price of the coat.\nAnnual salary (12 months) $= 90 + T$.\nSalary earned per month $= (90 + T) / 12$.\nSalary earned for 9 months $= 9 \\times (90 + T) / 12 = 3/4 (90 + T)$.\nAmount received for 9 months $= 65 + T$.\nEquating the two expressions for the 9-month salary:\n$3/4 (90 + T) = 65 + T$\n$3 (90 + T) = 4 (65 + T)$\n$270 + 3T = 260 + 4T$\n$T = 270 - 260 = 10$.\n",
+    "difficulty": "Easy",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "David invested ₹ 10,000 in a portfolio. In Year 1, he suffered a percentage loss ($x$), but his balance remained above ₹ 5,000. In Year 2, the investment grew by a percentage that was five times the percentage loss incurred in Year 1. If the total gain over the two years was 35% of the initial investment, what was the percentage loss in the first year?",
+    "options": [
+      "5",
+      "15",
+      "17",
+      "10"
+    ],
+    "correct_answer": "10",
+    "explanation": "Let $r$ be the rate of loss in Year 1 ($r = x/100$). The rate of growth in Year 2 is $5r$.\nTotal Investment Factor $F = (1 - r)(1 + 5r)$.\nOverall gain is 35%, so $F = 1.35$.\n$(1 - r)(1 + 5r) = 1.35$\n$1 + 5r - r - 5r^2 = 1.35$\n$1 + 4r - 5r^2 = 1.35$\n$5r^2 - 4r + 0.35 = 0$.\nMultiply by 100: $500 r^2 - 400 r + 35 = 0$.\nDivide by 5: $100 r^2 - 80 r + 7 = 0$.\nUsing quadratic formula for $r$: $r = \\frac{80 \\pm \\sqrt{6400 - 2800}}{200} = \\frac{80 \\pm 60}{200}$.\n$r_1 = 140/200 = 0.7$ (70%). (Rejected as balance > 5000 requires loss < 50%)\n$r_2 = 20/200 = 0.1$ (10%).\nPercentage loss $x = 10\\%.$\n",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Three partners, Liam, Mike, and Nathan, pool capital for a venture, sharing profits based on their respective investment ratios. Liam contributed 70% of the total investment. Liam’s profit share drops by ₹ 420 when the total profit margin falls from 18% to 15%. Nathan’s profit share increases by ₹ 80 when the total profit margin rises from 15% to 17%. What was the amount, in INR, invested by Mike?",
+    "options": [
+      "2000",
+      "2400",
+      "2200",
+      "1800"
+    ],
+    "correct_answer": "2000",
+    "explanation": "Let $I_T$ be the total investment. $S_A, S_B, S_C$ are the share ratios.\n$S_A = 0.70$.\n1. Use Liam's change in profit:\nChange in profit percentage $= 18\\% - 15\\% = 3\\%$ (0.03).\nLiam's share of the profit change $= S_A \\times 0.03 \\times I_T = 420$.\n$0.70 \\times 0.03 \\times I_T = 420 \\implies 0.021 I_T = 420$.\n$I_T = 420 / 0.021 = 20,000$ (Total Investment).\n2. Use Nathan's change in profit:\nChange in profit percentage $= 17\\% - 15\\% = 2\\%$ (0.02).\nNathan's share of the profit change $= S_C \\times 0.02 \\times I_T = 80$.\n$S_C \\times 0.02 \\times 20000 = 80$.\n$S_C \\times 400 = 80 \\implies S_C = 80 / 400 = 0.20$ (20% share).\nNathan's investment $I_C = 0.20 \\times 20000 = 4000$.\n3. Calculate Mike's investment $I_B$:\nLiam's investment $I_A = 0.70 \\times 20000 = 14000$.\n$I_B = I_T - I_A - I_C = 20000 - 14000 - 4000 = 2000$ INR.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Five entities, E1, E2, E3, E4, and E5, generate profits. The profits of E1, E2, and E3 are in the proportion 9:10:8. The profits of E2, E4, and E5 are in the proportion 18:19:20. If E5's profit exceeds E1's profit by Rs 19 crore, what is the combined total profit (in Rs crore) generated by all five entities?",
+    "options": [
+      "438 crore",
+      "435 crore",
+      "348 crore",
+      "345 crore"
+    ],
+    "correct_answer": "438 crore",
+    "explanation": "1. Standardize the Ratios around P2:\nRatio 1: $P_1 : P_2 : P_3 = 9 : 10 : 8$.\nRatio 2: $P_2 : P_4 : P_5 = 18 : 19 : 20$.\nLCM of 10 and 18 is 90. Scale the ratios:\n$P_1 : P_2 : P_3 = 81 : 90 : 72$ (Multiply R1 by 9)\n$P_2 : P_4 : P_5 = 90 : 95 : 100$ (Multiply R2 by 5)\nCombined Ratio: $P_1 : P_2 : P_3 : P_4 : P_5 = 81k : 90k : 72k : 95k : 100k$.\n2. Use the Profit Difference:\n$P_5 - P_1 = 19$ crore.\n$100k - 81k = 19 \\implies 19k = 19 \\implies k = 1$.\n3. Calculate Total Profit:\nTotal Ratio Sum $= 81 + 90 + 72 + 95 + 100 = 438$.\nTotal Profit $= 438k = 438 \\times 1 = 438$ crore.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Julian purchased an unknown quantity, $X$ dozens, of Type A pastries for Rs 15 per dozen, and an equal quantity, $X$ dozens, of Type B pastries for Rs 12 per dozen. He sells all the pastries combined at a price of Rs 16.50 per dozen, resulting in a total profit of Rs 150. How many total dozens of pastries did he purchase?",
+    "options": [
+      "50",
+      "30",
+      "25",
+      "45"
+    ],
+    "correct_answer": "50",
+    "explanation": "Let $X$ be the number of dozens of each type. Total dozens $= 2X$.\n1. Calculate Total Cost Price (CP):\n$CP = (15 \\times X) + (12 \\times X) = 27X$.\n2. Calculate Total Selling Price (SP):\n$SP = 16.50 \\times (2X) = 33X$.\n3. Use Profit Equation:\nProfit $= SP - CP = 33X - 27X = 6X$.\nGiven Profit $= 150$.\n$6X = 150 \\implies X = 25$.\n4. Total dozens purchased $= 2X = 2 \\times 25 = 50$.",
+    "difficulty": "Easy",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Chris buys 110 kg of oil and 120 kg of flavor base. The oil costs 20% less per kg than the flavor base. Chris sells 10 kg of the oil at a 10% profit and 20 kg of the flavor base at a 20% profit. He mixes the remaining oil and flavor base and sells this mixture at ₹ 308.32 per kg, achieving a total profit of 64% on the entire transaction. What is the cost price of the oil, in rupees per kg?",
+    "options": [
+      "150",
+      "160",
+      "180",
+      "200"
+    ],
+    "correct_answer": "160",
+    "explanation": "Let $C_J$ be CP/kg of flavor base and $C_S$ be CP/kg of oil. $C_S = 0.8 C_J$.\nTotal Quantity $Q_T = 230$ kg.\n1. Total CP:\n$CP_T = 110 C_S + 120 C_J = 110(0.8 C_J) + 120 C_J = 88 C_J + 120 C_J = 208 C_J$.\n2. Target Total SP (64% profit):\n$SP_T = 208 C_J \\times 1.64 = 341.12 C_J$.\n3. SP from initial sales:\n$SP_1$ (10 kg oil, 10% profit) $= 10 C_S \\times 1.1 = 11 C_S = 11(0.8 C_J) = 8.8 C_J$.\n$SP_2$ (20 kg base, 20% profit) $= 20 C_J \\times 1.2 = 24 C_J$.\nTotal initial SP $= 8.8 C_J + 24 C_J = 32.8 C_J$.\n4. SP from mixture ($SP_M$):\nRemaining quantity $= 230 - 10 - 20 = 200$ kg.\n$SP_M = 200 \\times 308.32 = 61,664$.\n5. Solve for $C_J$:\n$SP_T = SP_1 + SP_2 + SP_M$\n$341.12 C_J = 32.8 C_J + 61664$.\n$308.32 C_J = 61664$.\n$C_J = 61664 / 308.32 = 200$.\n6. Find $C_S$ (CP of oil):\n$C_S = 0.8 \\times C_J = 0.8 \\times 200 = 160$ rupees/kg.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Helen sells two items, Item X and Item Y, at an identical price. Initially, she earns a 20% profit on X and incurs a 10% loss on Y. She then adjusts her selling strategy, increasing the common selling price such that X and Y are still sold equally, but now yields a 10% profit on Y. What is the resulting profit percentage made on Item X (nearest to)?",
+    "options": [
+      "42%",
+      "45%",
+      "47%",
+      "49%"
+    ],
+    "correct_answer": "47%",
+    "explanation": "Let $CP_X$ and $CP_Y$ be the cost prices.\nPhase 1 (SP1 is common):\n$SP_1 = 1.20 CP_X \\implies CP_X = SP_1 / 1.2 = 5/6 SP_1$.\n$SP_1 = 0.90 CP_Y \\implies CP_Y = SP_1 / 0.9 = 10/9 SP_1$.\nPhase 2 (SP2 is common):\nNew profit on Y is 10\\%. $SP_2 = 1.10 CP_Y$.\n$SP_2 = 1.10 \\times (10/9 SP_1) = 11/9 SP_1$.\nWe need the profit factor $P_X$ on X, where $SP_2 = P_X \\times CP_X$.\n$11/9 SP_1 = P_X \\times (5/6 SP_1)$.\n$P_X = (11/9) / (5/6) = (11/9) \\times (6/5) = 66/45 = 22/15$.\nProfit percentage $= (P_X - 1) \\times 100 = (22/15 - 1) \\times 100 = (7/15) \\times 100$.\n$(7/15) \\times 100 = 46.66...\\%$.\nNearest to 47\\%.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A retail price is initially set to guarantee a 40% profit margin. If the item’s manufacturing cost had been 40% lower, and the item had been sold for Rs 5 less than the original retail price, the resulting profit margin would have been 50%. What was the product's original selling price, in rupees?",
+    "options": [
+      "15",
+      "14",
+      "10",
+      "20"
+    ],
+    "correct_answer": "14",
+    "explanation": "Let $CP_1$ and $SP_1$ be the original cost and selling prices.\n1. Original Relationship:\n$SP_1 = 1.40 CP_1 \\implies CP_1 = SP_1 / 1.4 = 5 SP_1 / 7$.\n2. New Scenario:\nNew CP ($CP_2$) $= CP_1 \\times (1 - 0.40) = 0.6 CP_1$.\nNew SP ($SP_2$) $= SP_1 - 5$.\nNew profit is 50\\%: $SP_2 = 1.5 CP_2$.\n3. Substitute and Solve:\n$SP_1 - 5 = 1.5 (0.6 CP_1) \\implies SP_1 - 5 = 0.9 CP_1$.\nSubstitute $CP_1 = 5 SP_1 / 7$:\n$SP_1 - 5 = 0.9 (5 SP_1 / 7) = 4.5 SP_1 / 7$.\n$7(SP_1 - 5) = 4.5 SP_1$\n$7 SP_1 - 35 = 4.5 SP_1$\n$2.5 SP_1 = 35 \\implies SP_1 = 35 / 2.5 = 14$.\n",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A capital sum of Rs 10,000 is invested in Institution X for $T$ years at 5% simple annual interest (SAI). The final accumulation is then transferred to Institution Y for an additional 5 years at 6% SAI. If the interest income generated by X and Y are in the ratio 10:13, what was the initial investment duration ($T$), in years, at Institution X?",
+    "options": [
+      "4",
+      "5",
+      "3",
+      "6"
+    ],
+    "correct_answer": "6",
+    "explanation": "1. Interest from Bank A ($I_A$):\n$I_A = P R T = 10000 \\times 0.05 \\times T = 500 T$.\n2. Principal for Bank B ($P_B$):\n$P_B = 10000 + I_A = 10000 + 500 T$.\n3. Interest from Bank B ($I_B$):\n$I_B = P_B R T = (10000 + 500 T) \\times 0.06 \\times 5$.\n$I_B = (10000 + 500 T) \\times 0.30 = 3000 + 150 T$.\n4. Use the Ratio $I_A : I_B = 10 : 13$:\n$\\frac{500 T}{3000 + 150 T} = \\frac{10}{13}$\n$13 \\times 500 T = 10 \\times (3000 + 150 T)$\n$6500 T = 30000 + 1500 T$\n$5000 T = 30000 \\implies T = 6$ years.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Clara suffered a 19% loss when she sold an antique vase to Steven for Rs 4,860. Steven subsequently sold the vase to Holly. If Clara had sold the vase directly to Steven at the exact price Holly ultimately paid, Clara would have achieved a 17% profit. Calculate Steven's profit, in rupees, from selling the vase.",
+    "options": [
+      "2000",
+      "2160",
+      "2240",
+      "2500"
+    ],
+    "correct_answer": "2160",
+    "explanation": "1. Determine Clara's Cost Price ($CP_C$):\nClara sold for 4860 at 19% loss (81% of CP).\n$0.81 \\times CP_C = 4860 \\implies CP_C = 4860 / 0.81 = 6000$.\n2. Determine Holly's Purchase Price ($SP_S$):\nIf Clara sold at $SP_S$, she would gain 17% profit.\n$SP_S = 1.17 \\times CP_C = 1.17 \\times 6000 = 7020$.\n3. Calculate Steven's Profit ($P_S$):\nSteven's CP ($CP_S$) = Clara's first SP = 4860.\nSteven's SP ($SP_S$) = Holly's purchase price = 7020.\n$P_S = SP_S - CP_S = 7020 - 4860 = 2160$ rupees.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  }
+]

@@ -1,0 +1,210 @@
+[
+  {
+    "question_text": "A manufacturer produces a device using Material X (30% of total cost, sourced from Japan) and Material Y (50% of total cost, sourced from Korea). The initial profit margin is 20%. Due to currency fluctuation, the cost of Material X increases by 30%, and the cost of Material Y increases by 22%. Market constraints prevent the selling price from being raised by more than 10%. What is the maximum possible profit margin now?",
+    "options": [
+      "10%",
+      "12.5%",
+      "0%",
+      "7.5%"
+    ],
+    "correct_answer": "10%",
+    "explanation": "Assume initial CP = 100. Initial SP = 120. Unaffected cost (20%) = 20. Cost X (30%) = 30. Cost Y (50%) = 50.\n1. New Cost Price (CP'): Cost X increases by 30% (30 * 1.3 = 39). Cost Y increases by 22% (50 * 1.22 = 61). \nCP' = 39 + 61 + 20 = 120.\n2. Maximum Selling Price (SP'): Initial SP increases by maximum 10% (120 * 1.10 = 132).\n3. Maximum Profit = SP' - CP' = 132 - 120 = 12.\n4. Maximum Gain Percentage = (Profit / New CP) * 100 = (12 / 120) * 100 = 10%.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Liam plays 4 rounds of a complex betting game. The net token changes after each round are: Round 1: -8, Round 2: +20, Round 3: 0, Round 4: -8. Liam started with R. X tokens. The specific transactions within Round 1 require him to pay 16 tokens after having just received 8 tokens, making the lowest point X-8. If Liam never had to borrow any tokens (i.e., his balance never dropped below zero during any payment), what is the minimum possible initial value of X?",
+    "options": [
+      "16",
+      "8",
+      "100",
+      "24"
+    ],
+    "correct_answer": "8",
+    "explanation": "We must track the minimum balance during the highest payment requirement. The worst-case immediate transaction occurs in Round 1 and Round 4, where Liam receives 8 tokens and then must pay 16 tokens.\nIn Round 1: Liam's balance reaches X + 8, and he must pay 16. To avoid borrowing, X + 8 ≥ 16.\nTherefore, X ≥ 8.\nIf X = 8, the balance drops to 0 after Round 1 and 4, but never goes negative.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A supplier of building material uses a corrupted measuring tape. When purchasing materials, he uses a 120 cm tape advertised as a 1-meter standard (100 cm). When selling the same material, he uses an 80 cm tape advertised as a 1-meter standard. If he also offers a 20% discount on the marked price, what is his net profit percentage? (Assume Marked Price is equal to the standard Cost Price, M = C).",
+    "options": [
+      "20%",
+      "25%",
+      "40%",
+      "15%"
+    ],
+    "correct_answer": "20%",
+    "explanation": "Assume the True Cost (T) of 100 cm of material is 100 units.\n1. Profit on Buying (CP): He pays 100 units for 120 cm. True CP per 100 cm = 100 * (100/120) = 500/6 = 83.33 units.\n2. Profit on Selling (SP): He sets MP = 100. He offers a 20% discount: SP' = 100 * 0.80 = 80.\nHe charges 80 units for 80 cm of material. True SP for 100 cm = 80 * (100/80) = 100 units.\n3. Overall Profit: CP = 5/6 (or 83.33). SP = 1 (or 100).\nProfit = 100 - 83.33 = 16.67.\nProfit % = (16.67 / 83.33) * 100 = (1/6) / (5/6) * 100 = (1/5) * 100 = 20%.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A financial planner, Sarah, invests surplus capital and requires a guaranteed maximum return regardless of market movements. She has three options: Option P (Bank): Guaranteed return of +0.10%. Option Q (Fund X): Market Rise +5%, Market Fall – 3%. Option R (Fund Y): Market Rise – 2.5%, Market Fall + 2%. What is the highest minimum guaranteed return Sarah can achieve?",
+    "options": [
+      "0.25%",
+      "0.10%",
+      "0.20%",
+      "0.15%"
+    ],
+    "correct_answer": "0.20%",
+    "explanation": "Since Option P (0.10%) is the baseline, we check if mixing Q and R yields a better minimum return. Let Q and R be the fractions invested (Q + R = 1).\nReturn (Rise) = 5Q - 2.5R = 5Q - 2.5(1-Q) = 7.5Q - 2.5\nReturn (Fall) = -3Q + 2R = -3Q + 2(1-Q) = 2 - 5Q\nTo maximize the minimum return, we set R(Rise) = R(Fall):\n7.5Q - 2.5 = 2 - 5Q\n12.5Q = 4.5\nQ = 4.5/12.5 = 0.36. R = 0.64.\nGuaranteed return = 7.5(0.36) - 2.5 = 2.7 - 2.5 = 0.2%. (This is 0.20%)\nSince 0.20% > 0.10%, this mixed investment strategy provides the maximum guaranteed return.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Referring to the four rounds of the betting game played by Liam (Rounds 1, 2, 3, 4), the net token changes were -8, +20, 0, and -8 respectively. If Liam finished the session with 100 tokens, what was his initial balance?",
+    "options": [
+      "120",
+      "8",
+      "4",
+      "96"
+    ],
+    "correct_answer": "96",
+    "explanation": "Total Net Change (Gain) = G1 + G2 + G3 + G4 = -8 + 20 + 0 - 8 = +4 tokens.\nFinal Amount = Initial Amount + Net Change.\n100 = Initial Amount + 4.\nInitial Amount = 96.",
+    "difficulty": "Easy",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "If Liam had stopped playing the betting game (Rounds 1 to 4, net changes -8, +20, 0, -8) at the point where his cumulative gain was maximized, what would that maximum gain (in tokens) have been?",
+    "options": [
+      "12",
+      "20",
+      "16",
+      "4"
+    ],
+    "correct_answer": "12",
+    "explanation": "Track the cumulative gain:\nStart: 0\nAfter R1: 0 + (-8) = -8\nAfter R2: -8 + 20 = +12 (Maximum)\nAfter R3: 12 + 0 = +12\nAfter R4: 12 + (-8) = +4\nThe maximum gain achieved during the session was 12 tokens.",
+    "difficulty": "Easy",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A vendor, named Jessica, purchases 60 identical electronic components. Initially, she sells all 60 components at a 40% discount off the marked price (MP), achieving a 20% total profit. Later, 10 components are damaged. She decides to sell the remaining 50 components. What percentage discount should she offer on the marked price of the remaining components to ensure she makes the exact same total profit (in currency) as she intended from the original 60 items?",
+    "options": [
+      "30%",
+      "25%",
+      "24%",
+      "28%"
+    ],
+    "correct_answer": "28%",
+    "explanation": "Let CP be the cost price per component.\n1. Total Cost for 60 items = 60 CP. Total required Profit = 60 CP * 0.20 = 12 CP.\n2. Total Revenue required (R) = 60 CP + 12 CP = 72 CP.\n3. Initial SP per item (60% of MP): 0.6 MP. Total Revenue = 60 * 0.6 MP = 36 MP.\nEquating revenue: 36 MP = 72 CP => MP = 2 CP.\n4. Target Revenue for 50 items: Since 10 items were destroyed, the total cost incurred is still 60 CP. To make 12 CP profit, the revenue from the 50 items must be 72 CP.\n5. Required SP per item (SP_new) = 72 CP / 50.\nSubstitute CP = MP/2: SP_new = 72 (MP/2) / 50 = 36 MP / 50 = 0.72 MP.\n6. Discount (d): SP_new = MP (1 - d). 0.72 MP = MP (1 - d). d = 1 - 0.72 = 0.28 or 28%.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Liam invests 12,000 currency units at 8% interest, compounded annually, and another 10,000 currency units at 6% interest, compounded semi-annually. Both investments are for one year. Maya invests her money using a simple interest rate of 7.5% for one year. If Liam's total interest earned equals Maya's interest earned, find the amount (in currency units) Maya invested.",
+    "options": [
+      "20000",
+      "20920",
+      "21500",
+      "19800"
+    ],
+    "correct_answer": "20920",
+    "explanation": "1. Liam's Interest:\nI1 (12000 @ 8% CI, 1 yr) = 12000 * 0.08 = 960.\nI2 (10000 @ 6% CI, semi-annual, 1 yr): Rate per period = 3%. $I_2 = 10000[(1.03)^2 - 1] = 10000[1.0609 - 1] = 609.\nTotal Interest (I_L) = 960 + 609 = 1569.\n2. Maya's Investment (B):\n$I_M = B \times 0.075 \times 1 = 0.075 B$.\n3. Equating Interest:\n$1569 = 0.075 B$\n$B = 1569 / 0.075 = 1569 \times (40/3) = 523 \times 40 = 20920$.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A retailer purchases two identical electronic gadgets, both at a cost price $C$. The retailer sells the first gadget to Chloe at a 20% profit and the second gadget to David at a 20% loss. Subsequently, Chloe sells her gadget to Ethan at a 30% profit, and David sells his gadget to Fiona at a 30% loss. If the final prices paid by Ethan and Fiona are $E$ and $F$, respectively, calculate the value of $(E - F) / C$.",
+    "options": [
+      "1",
+      "1.2",
+      "0.50",
+      "0.7"
+    ],
+    "correct_answer": "1",
+    "explanation": "1. Amount paid by Ethan (E):\nRetailer sold to Chloe at 20% profit: $CP_{Chloe} = 1.2 C$.\nChloe sold to Ethan at 30% profit: $E = 1.2 C \times 1.3 = 1.56 C$.\n2. Amount paid by Fiona (F):\nRetailer sold to David at 20% loss: $CP_{David} = 0.8 C$.\nDavid sold to Fiona at 30% loss: $F = 0.8 C \times 0.7 = 0.56 C$.\n3. Calculation:\n$(E - F) / C = (1.56 C - 0.56 C) / C = 1.00 C / C = 1$.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A reseller, Maya, bought 10 identical tablets at the same cost price. She sold 6 tablets making a 25% profit and the remaining 4 tablets resulting in a 25% loss. If her combined profit from the entire transaction was 2,000 currency units, what was the cost price of a single tablet?",
+    "options": [
+      "6000",
+      "8000",
+      "4000",
+      "2000"
+    ],
+    "correct_answer": "4000",
+    "explanation": "Let CP be the cost price of one tablet.\n1. Profit from 6 tablets: $P_1 = 6 \times CP \times 0.25 = 1.5 CP$.\n2. Loss from 4 tablets: $L_2 = 4 \times CP \times 0.25 = 1.0 CP$.\n3. Net Total Profit = $P_1 - L_2 = 1.5 CP - 1.0 CP = 0.5 CP$.\n4. Given that Net Total Profit = 2000.\n$0.5 CP = 2000 \implies CP = 2000 / 0.5 = 4000$.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A philanthropist, Sarah, has an initial endowment of 20,000 tokens. She allocates 8,000 tokens to Scheme P earning 5.5% simple interest (S.I.), 5,000 tokens to Scheme Q earning 5.6% S.I., and the remainder to Scheme R earning $x\%$ S.I. per annum. Her total annual interest earned from all three schemes combined is exactly 5% of her initial endowment. If Sarah had instead invested the entire 20,000 tokens only in Scheme R, what would her annual interest income have been, in tokens?",
+    "options": [
+      "700",
+      "800",
+      "900",
+      "1000"
+    ],
+    "correct_answer": "800",
+    "explanation": "1. Total Interest required: 5% of 20,000 = 1,000 tokens.\n2. Interest from P: 8000 * 0.055 = 440.\n3. Interest from Q: 5000 * 0.056 = 280.\n4. Investment in R: 20,000 - 8,000 - 5,000 = 7,000.\n5. Interest from R: $I_R = 1000 - 440 - 280 = 280$.\n6. Find Rate x: $I_R = 7000 \times (x/100) = 70x$. $70x = 280 \implies x = 4\%$.\n7. Interest if total capital invested in R: $20,000 \times 0.04 = 800$.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A developer, Clara, invests 22,000 tokens for 6 years in Fund 1, which offers 4% annual interest compounded semi-annually. David invests an initial amount, $S$, in Fund 1 for 5 years. David then withdraws the total accumulated amount and reinvests it for a final year in Fund 2, which offers 10% simple annual interest. If the final amounts accumulated by Clara and David at the end of 6 years are identical, find the initial investment $S$ made by David, in rupees.",
+    "options": [
+      "20000",
+      "20808",
+      "21000",
+      "22000"
+    ],
+    "correct_answer": "20808",
+    "explanation": "Rate $r=4\%$ semi-annually means $2\%$ per period (1.02 multiplier).\n1. Clara's Final Amount ($A_C$): $A_C = 22000 (1.02)^{(6 \times 2)} = 22000 (1.02)^{12}$.\n2. David's Final Amount ($A_D$):\nAfter 5 years: $A_{D, 5} = S (1.02)^{(5 \times 2)} = S (1.02)^{10}$.\nFinal year (10% S.I.): $A_D = A_{D, 5} (1 + 0.10) = 1.1 S (1.02)^{10}$.\n3. Equating Amounts:\n$22000 (1.02)^{12} = 1.1 S (1.02)^{10}$\n$S = \frac{22000}{1.1} \times \frac{(1.02)^{12}}{(1.02)^{10}}$\n$S = 20000 \times (1.02)^2 = 20000 \times 1.0404 = 20808$.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A distributor, Jason, bought a batch of identical components, each costing 8 tokens. To handle sales, he pays a fixed monthly salary ($W$) to an assistant. Jason sells the first 100 components for 12 tokens each. If the remaining components are sold at 11 tokens each, his net profit is 300 tokens. However, if the remaining components are sold at 9 tokens each, his net result is a loss of 300 tokens. What is the fixed monthly salary ($W$) of the assistant?",
+    "options": [
+      "800",
+      "1000",
+      "1200",
+      "1500"
+    ],
+    "correct_answer": "1000",
+    "explanation": "Let R be the number of remaining components. Total Cost = $8(100+R) + W = 800 + 8R + W$.\nScenario 1 (Profit 300, remaining sold at 11):\nRevenue $Rev_1 = 100(12) + 11R = 1200 + 11R$.\n$Rev_1 - Cost = 300 \implies 1200 + 11R - (800 + 8R + W) = 300$\n$400 + 3R - W = 300 \implies W = 3R + 100$ (Eq 1)\nScenario 2 (Loss 300, remaining sold at 9):\nRevenue $Rev_2 = 100(12) + 9R = 1200 + 9R$.\n$Rev_2 - Cost = -300 \implies 1200 + 9R - (800 + 8R + W) = -300$\n$400 + R - W = -300 \implies W = R + 700$ (Eq 2)\nEquating (1) and (2): $3R + 100 = R + 700 \implies 2R = 600 \implies R = 300$.\nSubstitute R=300 into (2): $W = 300 + 700 = 1000$.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A middleman, Mark, borrows amount $X$ from Supplier A at 8% annual interest. Mark adds $Y$ of his own capital and lends the total $(X+Y)$ to Client B at 10% annual interest. All interests are compounded annually for one year. Condition 1: The net interest retained by Mark equals the interest paid to Supplier A. Condition 2: Had Mark lent $(X+2Y)$ to Client B at 10%, his retained profit would have increased by 150 currency units. Find the initial total capital lent to Client B ($X + Y$).",
+    "options": [
+      "3500",
+      "4000",
+      "4200",
+      "5000"
+    ],
+    "correct_answer": "4000",
+    "explanation": "Since T=1 year, CI = SI.\nInterest Paid to A ($I_A$) = 0.08X.\nCondition 1: Net Profit ($P_1$) = $I_A$.\n$P_1 = 0.10(X+Y) - 0.08X = 0.08X$ (Given)\n$0.10X + 0.10Y = 0.16X \implies 0.10Y = 0.06X \implies 5Y = 3X$ (Eq 1).\nCondition 2: New Profit ($P_2$) increased by 150.\n$P_2 = 0.10(X+2Y) - 0.08X = 0.10X + 0.20Y - 0.08X = 0.02X + 0.20Y$.\n$P_2 = P_1 + 150 = 0.08X + 150$ (Eq 2).\nEquating expressions for $P_2$: $0.02X + 0.20Y = 0.08X + 150$.\n$0.20Y = 0.06X + 150$. (Eq 3)\nFrom Eq 1, $X = 5Y/3$. Substitute into Eq 3:\n$0.20Y = 0.06(5Y/3) + 150 \implies 0.20Y = 0.10Y + 150$.\n$0.10Y = 150 \implies Y = 1500$.\n$X = 5(1500)/3 = 2500$.\nRequired value $X+Y = 2500 + 1500 = 4000$.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "The salary of Agent A is 20% higher than the salary of Agent B, and 20% lower than the salary of Agent C. If Agent C's salary decreases by 4% and Agent B's salary increases by 10%, find the percentage difference by which Agent C's new salary exceeds Agent B's new salary, rounded to the nearest integer.",
+    "options": [
+      "31",
+      "29",
+      "28",
+      "32"
+    ],
+    "correct_answer": "31",
+    "explanation": "Assume A = 120.\n1. Initial Salaries: A = 1.2 B => B = 120 / 1.2 = 100. A = 0.8 C => C = 120 / 0.8 = 150.\n2. New Salaries:\n$B_{new}$: 100 increased by 10% = 110.\n$C_{new}$: 150 decreased by 4% = 150 * 0.96 = 144.\n3. Percentage Excess: $\\frac{C_{new} - B_{new}}{B_{new}} \\times 100 = \\frac{144 - 110}{110} \\times 100$\n$= \\frac{34}{110} \\times 100 \\approx 30.909...$\nRounding to the nearest integer gives 31.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A collector sold two antique clocks, each for 300 tokens. The first clock was sold at a 10% loss, and the second was sold at a 10% profit. What was the collector's overall percentage of profit or loss?",
+    "options": [
+      "1% Loss",
+      "1% Profit",
+      "No Loss No Profit",
+      "0.5% Loss"
+    ],
+    "correct_answer": "1% Loss",
+    "explanation": "When two items are sold at the same selling price (SP), one at an X% profit and the other at an X% loss, the net result is always a loss given by the formula: $\\text{Loss} \\% = (X/10)^2$.\nHere, X = 10.\nLoss % = (10/10)^2 = 1^2 = 1%.\nDetailed calculation:\nTotal SP = 600.\n$CP_1 = 300 / 0.9 = 1000/3$. $CP_2 = 300 / 1.1 = 3000/11$.\nTotal CP = 1000/3 + 3000/11 = 20000/33 ≈ 606.06.\nNet Loss = (606.06 - 600) = 6.06.\nLoss % = (6.06 / 606.06) * 100 = 1%.",
+    "difficulty": "Easy",
+    "subtopic": "Profit, Loss and Interest"
+  }
+]

@@ -1,0 +1,158 @@
+[
+  {
+    "question_text": "A venture capitalist allocated funds (X) for various projects. He spent 25% (or 1/4) of the total funds purchasing specialized equipment and 10% (or 1/10) on logistics fees. What percentage of the initial funds remained for subsequent investments?",
+    "options": [
+      "55%",
+      "60%",
+      "65%",
+      "70%"
+    ],
+    "correct_answer": "65%",
+    "explanation": "Let the total money be X.\nMoney spent on equipment = X/4 (25%).\nMoney spent on fees = X/10 (10%).\nTotal expense = X/4 + X/10 = 5X/20 + 2X/20 = 7X/20.\nRemaining money = X - 7X/20 = 13X/20.\nPercentage remaining = (13/20) * 100% = 65%.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A sales representative earns a commission rate of x% on the first $2,000 in sales and y% on the sales amount exceeding $2,000. If the representative’s total sales reach $4,000, the total commission earned is $700. If the total sales reach $5,000, the total commission earned is $900. Find the lower commission rate, x%.",
+    "options": [
+      "10%",
+      "12%",
+      "15%",
+      "20%"
+    ],
+    "correct_answer": "15%",
+    "explanation": "Let x and y be the commission rates.\nCase 1 (Sales $4000): $2000(x/100) + (4000-2000)(y/100) = 700 \implies 20x + 20y = 700 \\implies x + y = 35$ (Equation 1).\nCase 2 (Sales $5000): $2000(x/100) + (5000-2000)(y/100) = 900 \implies 20x + 30y = 900 \\implies 2x + 3y = 90$ (Equation 2).\nMultiply Eq 1 by 2: $2x + 2y = 70$. \nSubtract this from Eq 2: $(2x + 3y) - (2x + 2y) = 90 - 70 \\implies y = 20$. \nSubstitute y=20 into Eq 1: $x + 20 = 35 \\implies x = 15$.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A baker purchased three varieties of ingredients weighing 3 kg, 4 kg, and 5 kg respectively. Their corresponding costs were $100/kg, $80/kg, and $60/kg. The baker mixed them all together and wished to make a 50% profit on the entire batch. What should be the minimum selling price per kilogram of the mixed ingredients?",
+    "options": [
+      "$110/kg",
+      "$115/kg",
+      "$120/kg",
+      "$125/kg"
+    ],
+    "correct_answer": "$115/kg",
+    "explanation": "Total Weight = 3 + 4 + 5 = 12 kg.\nTotal Cost Price (CP) = (3 * 100) + (4 * 80) + (5 * 60) = 300 + 320 + 300 = $920.\nOverall CP per kg = 920 / 12 = 230/3 $ per kg.\nRequired Profit = 50% (1.5 times CP).\nSelling Price (SP) per kg = (920 / 12) * 1.5 = (920 / 12) * (3/2) = 920 / 8 = $115.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A retailer sells an item, achieving a profit margin of $14\\frac{2}{7}\\%$ on the cost price (CP). If the retailer provided a discount of $11\\frac{1}{9}\\%$ on the Marked Price (MP), by what percentage is the Marked Price set above the Cost Price?",
+    "options": [
+      "28.57%",
+      "25.00%",
+      "30.00%",
+      "33.33%"
+    ],
+    "correct_answer": "28.57%",
+    "explanation": "Profit Percentage: $14\\frac{2}{7}\\% = 1/7$.\nIf CP = 7 units, Gain = 1 unit, SP = 8 units.\nDiscount Percentage: $11\\frac{1}{9}\\% = 1/9$.\nIf MP = 9 units, Discount = 1 unit, SP = 8 units.\nSince SP is 8 units in both cases, we can set CP = 7 parts and MP = 9 parts.\nPercentage markup = $((MP - CP) / CP) \\times 100 = ((9 - 7) / 7) \\times 100 = (2/7) \\times 100 = 28.57\\%$. \n(Using CP=100 for calculation based on solution: CP=100. SP=114.28. If $x(1 - 1/9) = 114.28$, then $x(8/9) = 114.28$. $x = 128.57$. Markup = 28.57%).",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A customer purchased several tickets using a $20 bill. The tickets were available in denominations of $5, $2, and $1. The vendor returned $3 in change, consisting only of $1 notes. If the customer purchased at least two tickets of every denomination, what was the total number of items involved in the transaction (purchased tickets plus change notes)?",
+    "options": [
+      "10",
+      "8",
+      "12",
+      "7"
+    ],
+    "correct_answer": "10",
+    "explanation": "Amount spent on tickets = $20 - $3 (change) = $17.\nMinimum purchase (at least 2 of each denomination):\n2 @ $5 = $10\n2 @ $2 = $4\n2 @ $1 = $2\nTotal minimum cost = $16.\nRemaining amount needed = $17 - $16 = $1. This must be a $1 ticket.\nActual Purchase: 2 ($5) + 2 ($2) + 3 ($1). Total 7 tickets purchased.\nChange received: 3 ($1) notes.\nTotal items involved = Purchased tickets + Change notes = 7 + 3 = 10.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "The market price of a rare mineral varies directly with the square of its weight. An artifact originally weighing $10k$ units breaks into four pieces with weights $1k, 2k, 3k$, and $4k$ units. Due to the breakage, the total market value decreased by $70,000$. What was the original price of the artifact?",
+    "options": [
+      "$50,000",
+      "$75,000",
+      "$100,000",
+      "$125,000"
+    ],
+    "correct_answer": "$100,000",
+    "explanation": "Let $P = C W^2$, where C is the constant and W is the weight.\nOriginal Price ($P_{orig}$): $C (10k)^2 = 100 C k^2$.\nNew Price ($P_{new}$): Sum of prices of individual pieces:\n$P_{new} = C(1k^2 + 2k^2 + 3k^2 + 4k^2) = C k^2 (1 + 4 + 9 + 16) = 30 C k^2$.\nDecrease in Price: $P_{orig} - P_{new} = 100 C k^2 - 30 C k^2 = 70 C k^2$.\nGiven decrease = $70,000.\n$70 C k^2 = 70,000 \\implies C k^2 = 1,000$.\nOriginal Price = $100 C k^2 = 100 \\times 1,000 = $100,000.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "Clara borrows Rs. 2,10,000 from a credit union at an annual compound interest rate of 10%. The loan is to be repaid in two equal annual installments, with the first installment due one year after borrowing. Calculate the amount of each installment.",
+    "options": [
+      "Rs. 1,10,000",
+      "Rs. 1,15,000",
+      "Rs. 1,20,000",
+      "Rs. 1,21,000"
+    ],
+    "correct_answer": "Rs. 1,21,000",
+    "explanation": "Total amount due at the end of 2 years (T=2) = $2,10,000 \\times (1 + 0.10)^2 = 2,10,000 \\times 1.21 = Rs. 2,54,100$.\nLet x be the installment amount.\nValue of the 1st installment (paid after 1 year) compounded for 1 more year = $x(1.1)$.\nValue of the 2nd installment (paid after 2 years) = $x$.\nEquating the total repayment value to the total amount due:\n$1.1x + x = 2,54,100$\n$2.1x = 2,54,100$\n$x = 2,54,100 / 2.1 = Rs. 1,21,000$.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A hardware supplier purchases cable wire at a rate of Rs. 100 per meter (100 cm). When purchasing, he receives 5 cm extra length free for every 100 cm ordered. He marks the price up by 10% and offers a 5% discount on the marked price. When selling, he uses a faulty measurement system such that he gives only 95 cm of cable for every 100 cm charged to the customer. What is the overall profit percentage made by the supplier?",
+    "options": [
+      "15.0%",
+      "15.5%",
+      "16.0%",
+      "16.5%"
+    ],
+    "correct_answer": "15.5%",
+    "explanation": "1. Cost Price (CP): He pays Rs 100 for 105 cm (100 cm paid + 5 cm free).\n2. Selling Price (SP) calculation:\n   Marked Price (MP) for 100 cm = $100 \\times 1.10 = 110$.\n   SP for 100 cm charged = $110 \\times (1 - 0.05) = 110 \\times 0.95 = Rs 104.5$.\n3. Actual quantity sold:\n   He charges for 100 cm but only gives 95 cm. So, SP of 95 cm = Rs 104.5.\n4. Calculate SP of the actual purchased quantity (105 cm):\n   SP per cm = $104.5 / 95 = 1.1$.\n   SP of 105 cm = $1.1 \\times 105 = Rs 115.5$.\nOverall CP = Rs 100. Overall SP = Rs 115.5.\nProfit = $115.5 - 100 = 15.5$.\nProfit Percentage = $(15.5 / 100) \\times 100 = 15.5\\%$.",
+    "difficulty": "Hard",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A company manufactures 1500 custom clocks. The manufacturing cost per clock is $150, and fixed overhead costs total $30,000. During the main sales season, clocks are sold for $250 each. During the off-season, remaining clocks are sold for $100 each. To achieve the break-even point (zero profit, zero loss), how many clocks (x) must be sold during the main sales season?",
+    "options": [
+      "650",
+      "700",
+      "750",
+      "800"
+    ],
+    "correct_answer": "700",
+    "explanation": "Total Cost Price (CP) = (1500 units * $150/unit) + $30,000 (fixed cost) = $225,000 + $30,000 = $255,000.\nLet x be the seasonal sales.\nOff-seasonal sales = 1500 - x.\nTotal Selling Price (SP) = Seasonal Sales SP + Off-seasonal Sales SP.\n$SP = 250x + 100(1500 - x)$.\nFor break-even, SP = CP:\n$250x + 150,000 - 100x = 255,000$\n$150x = 255,000 - 150,000$\n$150x = 105,000$\n$x = 105,000 / 150 = 700$.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A financial planner divides a total savings amount into two investments, A (x) and B (y). Investment A yields 15% simple annual interest for 4 years, and Investment B yields 12% simple annual interest for 3 years. If the total simple interest earned from both investments is equal, what percentage of the total savings was invested in Investment A?",
+    "options": [
+      "37.5%",
+      "40.0%",
+      "60.0%",
+      "62.5%"
+    ],
+    "correct_answer": "37.5%",
+    "explanation": "Interest from A = Interest from B\n$(x \\times 15 \\times 4) / 100 = (y \\times 12 \\times 3) / 100$\n$60x = 36y$\nDividing by 12: $5x = 3y$\nRatio $x/y = 3/5$. Let $x=3k$ and $y=5k$.\nTotal savings = $x + y = 8k$.\nPercentage invested in A = $(x / (x+y)) \\times 100 = (3k / 8k) \\times 100 = (3/8) \\times 100 = 37.5\\%$.",
+    "difficulty": "Easy",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "A manufacturing company sets its selling price (SP) to achieve a 20% profit on total production cost (PC). Initially, PC is $100, consisting of $30 for Component A (sourced from Region 1) and $50 for Component B (sourced from Region 2), with the remaining $20 for internal labor. Due to currency fluctuations, the cost of Component A increases by 20%, and the cost of Component B decreases by 12%. Assuming the SP and labor costs remain unchanged, what is the new profit percentage?",
+    "options": [
+      "18%",
+      "20%",
+      "22%",
+      "25%"
+    ],
+    "correct_answer": "20%",
+    "explanation": "Initial CP = $100. Initial SP = $100 \\times 1.20 = $120.\nComponent A cost changes: $30 \\times 1.20 = $36.\nComponent B cost changes: $50 \\times (1 - 0.12) = 50 \\times 0.88 = $44.\nLabor cost remains $20.\nNew Total CP = $36 + $44 + $20 = $100.\nNew SP remains $120.\nNew Profit = $120 - $100 = $20.\nNew Profit Percentage = ($20 / $100) \\times 100 = 20\\%.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  },
+  {
+    "question_text": "An initial investment grows under compound interest. It is known that the growth factor over any two-year period is 1.44. What is the minimum number of full years required for an initial investment of $4,000 to grow to an amount exceeding $20,000?",
+    "options": [
+      "8",
+      "9",
+      "10",
+      "11"
+    ],
+    "correct_answer": "9",
+    "explanation": "The growth factor over 2 years is 1.44. Let R be the annual growth rate.\n$(1 + R)^2 = 1.44 \\implies 1 + R = 1.2$.\nWe need to find the minimum number of years (n) such that:\n$4,000 (1.2)^n > 20,000$\n$(1.2)^n > 5$\nWe test powers of 1.2:\n$1.2^8 \\approx 4.30$\n$1.2^9 \\approx 5.15$\nSince $5.15 > 5$, the minimum number of full years required is 9.",
+    "difficulty": "Medium",
+    "subtopic": "Profit, Loss and Interest"
+  }
+]
