@@ -159,6 +159,30 @@ export default function AdminDashboard() {
                                 <p className="text-sm text-slate-500">View and manage user accounts</p>
                             </div>
                         </a>
+                        <a
+                            href="/admin/practice"
+                            className="flex items-center gap-4 p-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 transition-colors group"
+                        >
+                            <div className="bg-emerald-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                                <BookOpen className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-slate-900">Practice Analytics</h3>
+                                <p className="text-sm text-slate-500">Monitor practice session statistics</p>
+                            </div>
+                        </a>
+                        <a
+                            href="/admin/exams"
+                            className="flex items-center gap-4 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 transition-colors group"
+                        >
+                            <div className="bg-amber-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                                <FileText className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-slate-900">Manage Exams</h3>
+                                <p className="text-sm text-slate-500">Create and manage mock & live exams</p>
+                            </div>
+                        </a>
                     </CardContent>
                 </Card>
 

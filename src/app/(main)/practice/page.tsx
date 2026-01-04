@@ -1,0 +1,340 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePractice } from "@/hooks/usePractice";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+    BookOpen,
+    Clock,
+    Infinity,
+    Play,
+    CheckCircle,
+    XCircle,
+    ArrowRight,
+    Timer,
+    RotateCcw,
+    Loader2,
+    Brain,
+    Sparkles
+} from "lucide-react";
+import PracticeSession from "@/components/practice/PracticeSession";
+import PracticeResults from "@/components/practice/PracticeResults";
+
+export default function PracticePage() {
+    const { user, loading: authLoading } = useAuth();
+    const router = useRouter();
+    const {
+        loading,
+        error,
+        topics,
+        session,
+        questions,
+        currentQuestion,
+        currentIndex,
+        answers,
+        isComplete,
+        startSession,
+        submitAnswer,
+        nextQuestion,
+        completeSession,
+        resetSession,
+        timeRemaining,
+        setTimeRemaining
+    } = usePractice();
+
+    // Configuration state
+    const [mode, setMode] = useState<'timed' | 'untimed'>('untimed');
+    const [timePerQuestion, setTimePerQuestion] = useState(60);
+    const [questionCount, setQuestionCount] = useState(10);
+    const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (!authLoading && !user) {
+            router.push("/auth");
+        }
+    }, [user, authLoading, router]);
+
+    const handleTopicToggle = (topic: string) => {
+        setSelectedTopics(prev => {
+            if (topic === 'Overall') {
+                return prev.includes('Overall') ? [] : ['Overall'];
+            }
+
+            // If selecting a subject (Math, English, Analytical)
+            const subjects = ['Math', 'English', 'Analytical'];
+            if (subjects.includes(topic)) {
+                const withoutSubject = prev.filter(t => t !== topic && t !== 'Overall');
+                if (prev.includes(topic)) {
+                    // Also remove subtopics of this subject
+                    return withoutSubject.filter(t => !topics[topic]?.includes(t));
+                }
+                return [...withoutSubject, topic];
+            }
+
+            // Regular subtopic toggle
+            const newSelection = prev.includes(topic)
+                ? prev.filter(t => t !== topic)
+                : [...prev.filter(t => t !== 'Overall'), topic];
+            return newSelection;
+        });
+    };
+
+    const handleStartPractice = () => {
+        startSession({
+            mode,
+            timePerQuestion: mode === 'timed' ? timePerQuestion : undefined,
+            subjects: selectedTopics.length === 0 ? ['Overall'] : selectedTopics,
+            questionCount,
+        });
+    };
+
+    // If in active session, show session component
+    if (session && !isComplete) {
+        return (
+            <PracticeSession
+                question={currentQuestion}
+                questionNumber={currentIndex + 1}
+                totalQuestions={questions.length}
+                mode={mode}
+                timeRemaining={timeRemaining}
+                onAnswer={submitAnswer}
+                onNext={nextQuestion}
+                onComplete={completeSession}
+                onTimeUp={() => {
+                    submitAnswer('', timePerQuestion);
+                    nextQuestion();
+                }}
+                setTimeRemaining={setTimeRemaining}
+                timePerQuestion={timePerQuestion}
+            />
+        );
+    }
+
+    // If session complete, show results
+    if (session && isComplete) {
+        return (
+            <PracticeResults
+                session={session}
+                questions={questions}
+                answers={answers}
+                onRetry={resetSession}
+            />
+        );
+    }
+
+    // Show configuration screen
+    return (
+        <div className="container mx-auto px-6 py-8 max-w-4xl">
+            {/* Header */}
+            <div className="mb-8 animate-fade-in">
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-12 h-12 rounded-xl gradient-accent flex items-center justify-center">
+                        <Brain className="w-6 h-6 text-primary-foreground" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold">Practice Mode</h1>
+                        <p className="text-muted-foreground">Train your skills with targeted practice</p>
+                    </div>
+                </div>
+            </div>
+
+            {error && (
+                <Card className="border-destructive bg-destructive/10 mb-6">
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <XCircle className="w-5 h-5 text-destructive" />
+                        <span className="text-destructive">{error}</span>
+                    </CardContent>
+                </Card>
+            )}
+
+            <div className="grid gap-6">
+                {/* Mode Selection */}
+                <Card className="border-border/40">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Timer className="w-5 h-5 text-primary" />
+                            Practice Mode
+                        </CardTitle>
+                        <CardDescription>Choose how you want to practice</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <RadioGroup
+                            value={mode}
+                            onValueChange={(v) => setMode(v as 'timed' | 'untimed')}
+                            className="grid grid-cols-2 gap-4"
+                        >
+                            <Label
+                                htmlFor="untimed"
+                                className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${mode === 'untimed'
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:border-primary/50'
+                                    }`}
+                            >
+                                <RadioGroupItem value="untimed" id="untimed" className="sr-only" />
+                                <Infinity className="w-8 h-8 text-primary" />
+                                <div className="text-center">
+                                    <div className="font-semibold">Untimed</div>
+                                    <div className="text-sm text-muted-foreground">Take your time</div>
+                                </div>
+                            </Label>
+                            <Label
+                                htmlFor="timed"
+                                className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${mode === 'timed'
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:border-primary/50'
+                                    }`}
+                            >
+                                <RadioGroupItem value="timed" id="timed" className="sr-only" />
+                                <Clock className="w-8 h-8 text-primary" />
+                                <div className="text-center">
+                                    <div className="font-semibold">Timed</div>
+                                    <div className="text-sm text-muted-foreground">Challenge yourself</div>
+                                </div>
+                            </Label>
+                        </RadioGroup>
+
+                        {mode === 'timed' && (
+                            <div className="mt-6 space-y-3">
+                                <div className="flex justify-between text-sm">
+                                    <span>Time per question</span>
+                                    <span className="font-semibold">{timePerQuestion} seconds</span>
+                                </div>
+                                <Slider
+                                    value={[timePerQuestion]}
+                                    onValueChange={([v]) => setTimePerQuestion(v)}
+                                    min={15}
+                                    max={120}
+                                    step={15}
+                                />
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Question Count */}
+                <Card className="border-border/40">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <BookOpen className="w-5 h-5 text-primary" />
+                            Question Count
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
+                            <div className="flex justify-between text-sm">
+                                <span>Number of questions</span>
+                                <span className="font-semibold">{questionCount} questions</span>
+                            </div>
+                            <Slider
+                                value={[questionCount]}
+                                onValueChange={([v]) => setQuestionCount(v)}
+                                min={5}
+                                max={50}
+                                step={5}
+                            />
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Topic Selection */}
+                <Card className="border-border/40">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-primary" />
+                            Select Topics
+                        </CardTitle>
+                        <CardDescription>Choose what you want to practice</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-[300px] pr-4">
+                            <div className="space-y-4">
+                                {/* Overall option */}
+                                <div
+                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedTopics.includes('Overall')
+                                        ? 'border-primary bg-primary/5'
+                                        : 'border-border hover:border-primary/50'
+                                        }`}
+                                    onClick={() => handleTopicToggle('Overall')}
+                                >
+                                    <Checkbox checked={selectedTopics.includes('Overall')} />
+                                    <div className="flex-1">
+                                        <div className="font-semibold">Overall</div>
+                                        <div className="text-sm text-muted-foreground">All subjects and topics</div>
+                                    </div>
+                                </div>
+
+                                {/* Subjects and their topics */}
+                                {Object.entries(topics).map(([subject, subtopics]) => (
+                                    <div key={subject} className="space-y-2">
+                                        <div
+                                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedTopics.includes(subject)
+                                                ? 'border-primary bg-primary/5'
+                                                : 'border-border hover:border-primary/50'
+                                                }`}
+                                            onClick={() => handleTopicToggle(subject)}
+                                        >
+                                            <Checkbox
+                                                checked={selectedTopics.includes(subject) || selectedTopics.includes('Overall')}
+                                                disabled={selectedTopics.includes('Overall')}
+                                            />
+                                            <div className="font-semibold">{subject}</div>
+                                            <Badge variant="secondary" className="ml-auto">
+                                                {subtopics.length} topics
+                                            </Badge>
+                                        </div>
+
+                                        {!selectedTopics.includes(subject) && !selectedTopics.includes('Overall') && (
+                                            <div className="ml-8 grid grid-cols-2 gap-2">
+                                                {subtopics.map((subtopic) => (
+                                                    <div
+                                                        key={subtopic}
+                                                        className={`flex items-center gap-2 p-2 rounded-md text-sm cursor-pointer transition-all ${selectedTopics.includes(subtopic)
+                                                            ? 'bg-primary/10 text-primary'
+                                                            : 'hover:bg-muted'
+                                                            }`}
+                                                        onClick={() => handleTopicToggle(subtopic)}
+                                                    >
+                                                        <Checkbox checked={selectedTopics.includes(subtopic)} />
+                                                        <span className="truncate">{subtopic}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+
+                {/* Start Button */}
+                <Button
+                    onClick={handleStartPractice}
+                    disabled={loading}
+                    className="w-full h-14 text-lg gradient-primary"
+                >
+                    {loading ? (
+                        <>
+                            <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                            Loading Questions...
+                        </>
+                    ) : (
+                        <>
+                            <Play className="w-5 h-5 mr-2" />
+                            Start Practice
+                        </>
+                    )}
+                </Button>
+            </div>
+        </div>
+    );
+}

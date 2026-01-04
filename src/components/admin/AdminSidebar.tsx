@@ -9,7 +9,9 @@ import {
     Settings,
     BrainCircuit,
     BarChart3,
-    ArrowLeft
+    ArrowLeft,
+    Brain,
+    Trophy
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +19,8 @@ const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/questions", label: "Question Extractor", icon: BrainCircuit },
+    { href: "/admin/practice", label: "Practice", icon: Brain },
+    { href: "/admin/exams", label: "Exams", icon: Trophy },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

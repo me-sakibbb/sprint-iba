@@ -8,7 +8,7 @@ export const fetchCache = 'force-no-store';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Target, Zap, BookOpen, Sparkles } from "lucide-react";
+import { Trophy, Target, Zap, BookOpen, Sparkles, ClipboardList, FileText, Brain } from "lucide-react";
 import { useRouter } from "next/navigation";
 import DailyGoals from "@/components/DailyGoals";
 import SubjectMastery from "@/components/SubjectMastery";
@@ -129,6 +129,71 @@ const Dashboard = () => {
 
             {/* Dashboard Widgets */}
             <DashboardWidgets />
+
+            {/* Featured: Practice & Exams */}
+            <div className="mb-12 animate-fade-in-up" style={{ animationDelay: "0.25s" }}>
+                <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <Sparkles className="w-6 h-6 text-accent" />
+                    Featured
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card
+                        className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 cursor-pointer group hover:border-primary/50 transition-all hover:shadow-xl hover:shadow-primary/10"
+                        onClick={() => router.push("/practice")}
+                    >
+                        <CardHeader>
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center shadow-lg">
+                                    <ClipboardList className="w-7 h-7 text-primary-foreground" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl">Practice Mode</CardTitle>
+                                    <CardDescription className="text-base">Master topics at your own pace</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">Math</span>
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">English</span>
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">Analytical</span>
+                            </div>
+                            <Button className="w-full btn-hover-glow gradient-primary group-hover:scale-[1.02] transition-transform">
+                                <Brain className="w-5 h-5 mr-2" />
+                                Start Practice
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card
+                        className="border-2 border-accent/30 bg-gradient-to-br from-accent/5 to-primary/5 cursor-pointer group hover:border-accent/50 transition-all hover:shadow-xl hover:shadow-accent/10"
+                        onClick={() => router.push("/exams")}
+                    >
+                        <CardHeader>
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-xl gradient-accent flex items-center justify-center shadow-lg">
+                                    <FileText className="w-7 h-7 text-primary-foreground" />
+                                </div>
+                                <div>
+                                    <CardTitle className="text-xl">Exams</CardTitle>
+                                    <CardDescription className="text-base">Mock tests & live competitions</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-600">Mock Exams</span>
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-600">Live Exams</span>
+                                <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-600">Leaderboard</span>
+                            </div>
+                            <Button className="w-full btn-hover-glow gradient-accent group-hover:scale-[1.02] transition-transform">
+                                <Trophy className="w-5 h-5 mr-2" />
+                                View Exams
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
 
             {/* Quick Actions */}
             <div className="mb-12 animate-fade-in-up" style={{ animationDelay: "0.3s" }}>

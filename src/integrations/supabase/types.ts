@@ -28,6 +28,7 @@ export type Database = {
           subtopic: string | null
           topic: string | null
           image_url: string | null
+          is_verified: boolean | null
         }
         Insert: {
           id?: string
@@ -42,6 +43,7 @@ export type Database = {
           subtopic?: string | null
           topic?: string | null
           image_url?: string | null
+          is_verified?: boolean | null
         }
         Update: {
           id?: string
@@ -56,6 +58,7 @@ export type Database = {
           subtopic?: string | null
           topic?: string | null
           image_url?: string | null
+          is_verified?: boolean | null
         }
         Relationships: []
       }
@@ -84,6 +87,186 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      practice_sessions: {
+        Row: {
+          id: string
+          user_id: string
+          mode: 'timed' | 'untimed'
+          time_per_question: number | null
+          subjects: string[]
+          total_questions: number
+          correct_count: number
+          started_at: string
+          completed_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          mode: 'timed' | 'untimed'
+          time_per_question?: number | null
+          subjects?: string[]
+          total_questions?: number
+          correct_count?: number
+          started_at?: string
+          completed_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          mode?: 'timed' | 'untimed'
+          time_per_question?: number | null
+          subjects?: string[]
+          total_questions?: number
+          correct_count?: number
+          started_at?: string
+          completed_at?: string | null
+        }
+        Relationships: []
+      }
+      practice_answers: {
+        Row: {
+          id: string
+          session_id: string
+          question_id: string
+          user_answer: string | null
+          is_correct: boolean
+          time_taken_seconds: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          question_id: string
+          user_answer?: string | null
+          is_correct?: boolean
+          time_taken_seconds?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          question_id?: string
+          user_answer?: string | null
+          is_correct?: boolean
+          time_taken_seconds?: number | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      exams: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          type: 'mock' | 'live'
+          question_ids: string[]
+          duration_minutes: number
+          start_time: string | null
+          end_time: string | null
+          allow_retake: boolean
+          show_results_immediately: boolean
+          show_leaderboard: boolean
+          show_topic_breakdown: boolean
+          is_published: boolean
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          type: 'mock' | 'live'
+          question_ids?: string[]
+          duration_minutes?: number
+          start_time?: string | null
+          end_time?: string | null
+          allow_retake?: boolean
+          show_results_immediately?: boolean
+          show_leaderboard?: boolean
+          show_topic_breakdown?: boolean
+          is_published?: boolean
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          type?: 'mock' | 'live'
+          question_ids?: string[]
+          duration_minutes?: number
+          start_time?: string | null
+          end_time?: string | null
+          allow_retake?: boolean
+          show_results_immediately?: boolean
+          show_leaderboard?: boolean
+          show_topic_breakdown?: boolean
+          is_published?: boolean
+          created_by?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      exam_attempts: {
+        Row: {
+          id: string
+          exam_id: string
+          user_id: string
+          answers: Record<string, string>
+          score: number
+          total_questions: number
+          started_at: string
+          submitted_at: string | null
+          is_submitted: boolean
+        }
+        Insert: {
+          id?: string
+          exam_id: string
+          user_id: string
+          answers?: Record<string, string>
+          score?: number
+          total_questions?: number
+          started_at?: string
+          submitted_at?: string | null
+          is_submitted?: boolean
+        }
+        Update: {
+          id?: string
+          exam_id?: string
+          user_id?: string
+          answers?: Record<string, string>
+          score?: number
+          total_questions?: number
+          started_at?: string
+          submitted_at?: string | null
+          is_submitted?: boolean
+        }
+        Relationships: []
+      }
+      user_progress: {
+        Row: {
+          id: string
+          user_id: string
+          question_id: string
+          is_correct: boolean
+          answered_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          question_id: string
+          is_correct?: boolean
+          answered_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          question_id?: string
+          is_correct?: boolean
+          answered_at?: string
         }
         Relationships: []
       }

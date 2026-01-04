@@ -23,7 +23,9 @@ import {
     Languages,
     Brain,
     LogOut,
-    User
+    User,
+    ClipboardList,
+    FileText
 } from "lucide-react"
 
 import {
@@ -101,6 +103,34 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                                 >
                                     <Calendar />
                                     <span>Study Plan</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                        </SidebarMenu>
+                    </SidebarGroupContent>
+                </SidebarGroup>
+
+                <SidebarGroup>
+                    <SidebarGroupLabel>Study</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                        <SidebarMenu>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    isActive={isActive("/practice")}
+                                    tooltip="Practice"
+                                    onClick={() => router.push("/practice")}
+                                >
+                                    <ClipboardList />
+                                    <span>Practice</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    isActive={isActive("/exams")}
+                                    tooltip="Exams"
+                                    onClick={() => router.push("/exams")}
+                                >
+                                    <FileText />
+                                    <span>Exams</span>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>
