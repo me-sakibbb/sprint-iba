@@ -25,7 +25,8 @@ import {
     LogOut,
     User,
     ClipboardList,
-    FileText
+    FileText,
+    AlertCircle
 } from "lucide-react"
 
 import {
@@ -131,6 +132,16 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                                 >
                                     <FileText />
                                     <span>Exams</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    isActive={isActive("/oops-list")}
+                                    tooltip="Oops List"
+                                    onClick={() => router.push("/oops-list")}
+                                >
+                                    <AlertCircle />
+                                    <span>Oops List</span>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         </SidebarMenu>

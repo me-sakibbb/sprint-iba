@@ -270,12 +270,129 @@ export type Database = {
         }
         Relationships: []
       }
+      mistake_logs: {
+        Row: {
+          id: string
+          user_id: string
+          question_id: string
+          user_answer: string | null
+          correct_answer: string
+          context: 'practice' | 'exam'
+          session_id: string | null
+          time_taken_seconds: number | null
+          topic: string | null
+          subtopic: string | null
+          difficulty: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          question_id: string
+          user_answer?: string | null
+          correct_answer: string
+          context: 'practice' | 'exam'
+          session_id?: string | null
+          time_taken_seconds?: number | null
+          topic?: string | null
+          subtopic?: string | null
+          difficulty?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          question_id?: string
+          user_answer?: string | null
+          correct_answer?: string
+          context?: 'practice' | 'exam'
+          session_id?: string | null
+          time_taken_seconds?: number | null
+          topic?: string | null
+          subtopic?: string | null
+          difficulty?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      ai_feedback_cache: {
+        Row: {
+          id: string
+          user_id: string
+          feedback_type: 'overall' | 'category' | 'subject'
+          scope_value: string | null
+          feedback_text: string
+          pattern_analysis: string | null
+          root_causes: string | null
+          learning_gaps: string | null
+          action_plan: string | null
+          practice_focus: string | null
+          mistake_count: number
+          created_at: string
+          expires_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          feedback_type: 'overall' | 'category' | 'subject'
+          scope_value?: string | null
+          feedback_text: string
+          pattern_analysis?: string | null
+          root_causes?: string | null
+          learning_gaps?: string | null
+          action_plan?: string | null
+          practice_focus?: string | null
+          mistake_count?: number
+          created_at?: string
+          expires_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          feedback_type?: 'overall' | 'category' | 'subject'
+          scope_value?: string | null
+          feedback_text?: string
+          pattern_analysis?: string | null
+          root_causes?: string | null
+          learning_gaps?: string | null
+          action_plan?: string | null
+          practice_focus?: string | null
+          mistake_count?: number
+          created_at?: string
+          expires_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      calculate_mistake_severity: {
+        Args: {
+          p_user_id: string
+          p_question_id: string
+        }
+        Returns: {
+          severity_level: string
+          severity_score: number
+          attempt_count: number
+          last_attempt: string
+        }[]
+      }
+      get_high_priority_mistakes: {
+        Args: {
+          p_user_id: string
+          p_limit: number
+        }
+        Returns: {
+          question_id: string
+          severity_level: string
+          severity_score: number
+          mistake_count: number
+          last_mistake_at: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

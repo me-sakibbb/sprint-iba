@@ -24,8 +24,10 @@ import {
     RotateCcw,
     Loader2,
     Brain,
-    Sparkles
+    Sparkles,
+    AlertCircle
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import PracticeSession from "@/components/practice/PracticeSession";
 import PracticeResults from "@/components/practice/PracticeResults";
 
@@ -51,11 +53,21 @@ export default function PracticePage() {
         setTimeRemaining
     } = usePractice();
 
+    const searchParams = useSearchParams();
+
     // Configuration state
     const [mode, setMode] = useState<'timed' | 'untimed'>('untimed');
+    const [practiceType, setPracticeType] = useState<'normal' | 'mistakes'>('normal');
     const [timePerQuestion, setTimePerQuestion] = useState(60);
     const [questionCount, setQuestionCount] = useState(10);
     const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+
+    useEffect(() => {
+        const modeParam = searchParams.get('mode');
+        if (modeParam === 'mistakes') {
+            setPracticeType('mistakes');
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -94,6 +106,7 @@ export default function PracticePage() {
             timePerQuestion: mode === 'timed' ? timePerQuestion : undefined,
             subjects: selectedTopics.length === 0 ? ['Overall'] : selectedTopics,
             questionCount,
+            practiceMode: practiceType,
         });
     };
 
@@ -157,6 +170,53 @@ export default function PracticePage() {
             )}
 
             <div className="grid gap-6">
+                {/* Practice Type Selection */}
+                <Card className="border-border/40">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Brain className="w-5 h-5 text-primary" />
+                            Practice Type
+                        </CardTitle>
+                        <CardDescription>Choose what questions you want to focus on</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <RadioGroup
+                            value={practiceType}
+                            onValueChange={(v) => setPracticeType(v as 'normal' | 'mistakes')}
+                            className="grid grid-cols-2 gap-4"
+                        >
+                            <Label
+                                htmlFor="normal"
+                                className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${practiceType === 'normal'
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:border-primary/50'
+                                    }`}
+                            >
+                                <RadioGroupItem value="normal" id="normal" className="sr-only" />
+                                <BookOpen className="w-8 h-8 text-primary" />
+                                <div className="text-center">
+                                    <div className="font-semibold">Normal Practice</div>
+                                    <div className="text-sm text-muted-foreground">New questions you haven't answered</div>
+                                </div>
+                            </Label>
+                            <Label
+                                htmlFor="mistakes"
+                                className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${practiceType === 'mistakes'
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:border-primary/50'
+                                    }`}
+                            >
+                                <RadioGroupItem value="mistakes" id="mistakes" className="sr-only" />
+                                <AlertCircle className="w-8 h-8 text-primary" />
+                                <div className="text-center">
+                                    <div className="font-semibold">Mistakes Only</div>
+                                    <div className="text-sm text-muted-foreground">Focus on your weak areas</div>
+                                </div>
+                            </Label>
+                        </RadioGroup>
+                    </CardContent>
+                </Card>
+
                 {/* Mode Selection */}
                 <Card className="border-border/40">
                     <CardHeader>

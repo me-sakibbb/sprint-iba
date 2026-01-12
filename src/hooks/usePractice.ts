@@ -11,6 +11,7 @@ interface PracticeConfig {
     timePerQuestion?: number; // seconds
     subjects: string[];
     questionCount: number;
+    practiceMode?: 'normal' | 'mistakes'; // New: practice normal questions or mistakes only
 }
 
 interface PracticeState {
@@ -76,47 +77,127 @@ export function usePractice() {
         setError(null);
 
         try {
-            // Get questions user hasn't answered yet
-            const { data: answeredQuestions } = await supabase
-                .from('user_progress')
-                .select('question_id')
-                .eq('user_id', user.id);
+            let selectedQuestions: Question[] = [];
 
-            const answeredIds = new Set(answeredQuestions?.map((p: any) => p.question_id) || []);
+            // If practicing mistakes, fetch questions from mistake logs
+            if (config.practiceMode === 'mistakes') {
+                // Get mistake question IDs
+                const { data: mistakesData, error: rpcError } = await supabase
+                    .rpc('get_high_priority_mistakes', {
+                        p_user_id: user.id,
+                        p_limit: 100,
+                        p_min_score: 0
+                    });
 
-            // Build query for questions
-            let query = supabase
-                .from('questions')
-                .select('*')
+                let mistakeQuestionIds: string[] = [];
+                let mistakeStats: any[] = [];
 
-            // Filter by subjects/topics
-            if (config.subjects.length > 0 && !config.subjects.includes('Overall')) {
-                // Check if selecting whole subjects or specific subtopics
-                const subjects = config.subjects.filter(s => ['Math', 'English', 'Analytical'].includes(s));
-                const subtopics = config.subjects.filter(s => !['Math', 'English', 'Analytical', 'Overall'].includes(s));
+                if (rpcError) {
+                    console.error(`RPC Error for user ${user.id}, falling back to direct query:`, rpcError);
+                    // Fallback: Get all unique question IDs from mistake_logs
+                    const { data: directMistakes, error: directError } = await supabase
+                        .from('mistake_logs')
+                        .select('question_id')
+                        .eq('user_id', user.id);
 
-                if (subjects.length > 0 && subtopics.length > 0) {
-                    query = query.or(`topic.in.(${subjects.join(',')}),subtopic.in.(${subtopics.join(',')})`);
-                } else if (subjects.length > 0) {
-                    query = query.in('topic', subjects);
-                } else if (subtopics.length > 0) {
-                    query = query.in('subtopic', subtopics);
+                    if (directError) {
+                        console.error('Direct query fallback also failed:', directError);
+                        throw directError;
+                    }
+
+                    if (!directMistakes || directMistakes.length === 0) {
+                        throw new Error("You haven't made any mistakes yet! Go practice some new questions first.");
+                    }
+
+                    // Get unique IDs
+                    mistakeQuestionIds = Array.from(new Set(directMistakes.map(m => m.question_id)));
+                } else if (mistakesData && mistakesData.length > 0) {
+                    mistakeQuestionIds = mistakesData.map((m: any) => m.question_id);
+                    mistakeStats = mistakesData;
+                } else {
+                    throw new Error("You haven't made any mistakes yet! Go practice some new questions first.");
                 }
+
+                if (mistakeQuestionIds.length > 0) {
+                    // Fetch full question objects
+                    let query = supabase
+                        .from('questions')
+                        .select('*')
+                        .in('id', mistakeQuestionIds);
+
+                    // Apply subject filter
+                    if (config.subjects.length > 0 && !config.subjects.includes('Overall')) {
+                        const subjects = config.subjects.filter(s => ['Math', 'English', 'Analytical'].includes(s));
+                        const subtopics = config.subjects.filter(s => !['Math', 'English', 'Analytical', 'Overall'].includes(s));
+
+                        if (subjects.length > 0 && subtopics.length > 0) {
+                            query = query.or(`topic.in.(${subjects.join(',')}),subtopic.in.(${subtopics.join(',')})`);
+                        } else if (subjects.length > 0) {
+                            query = query.in('topic', subjects);
+                        } else if (subtopics.length > 0) {
+                            query = query.in('subtopic', subtopics);
+                        }
+                    }
+
+                    const { data: questions, error: fetchError } = await query;
+
+                    if (fetchError) throw fetchError;
+
+                    // Sort by severity score (if available) or randomly
+                    const sortedQuestions = questions?.sort((a, b) => {
+                        const severityA = mistakeStats.find((m: any) => m.question_id === a.id)?.severity_score || 0;
+                        const severityB = mistakeStats.find((m: any) => m.question_id === b.id)?.severity_score || 0;
+                        return severityB - severityA;
+                    });
+
+                    selectedQuestions = (sortedQuestions || []).slice(0, config.questionCount) as Question[];
+
+                    if (selectedQuestions.length === 0) {
+                        throw new Error('No mistakes found matching your selected topics.');
+                    }
+                }
+            } else {
+                // Normal practice mode: Get questions user hasn't answered yet
+                const { data: answeredQuestions } = await supabase
+                    .from('user_progress')
+                    .select('question_id')
+                    .eq('user_id', user.id);
+
+                const answeredIds = new Set(answeredQuestions?.map((p: any) => p.question_id) || []);
+
+                // Build query for questions
+                let query = supabase
+                    .from('questions')
+                    .select('*')
+
+                // Filter by subjects/topics
+                if (config.subjects.length > 0 && !config.subjects.includes('Overall')) {
+                    const subjects = config.subjects.filter(s => ['Math', 'English', 'Analytical'].includes(s));
+                    const subtopics = config.subjects.filter(s => !['Math', 'English', 'Analytical', 'Overall'].includes(s));
+
+                    if (subjects.length > 0 && subtopics.length > 0) {
+                        query = query.or(`topic.in.(${subjects.join(',')}),subtopic.in.(${subtopics.join(',')})`);
+                    } else if (subjects.length > 0) {
+                        query = query.in('topic', subjects);
+                    } else if (subtopics.length > 0) {
+                        query = query.in('subtopic', subtopics);
+                    }
+                }
+
+                const { data: allQuestions, error: fetchError } = await query;
+
+                if (fetchError) throw fetchError;
+
+                // Filter out already answered questions
+                const unansweredQuestions = allQuestions?.filter((q: any) => !answeredIds.has(q.id)) || [];
+
+                // Shuffle and limit
+                const shuffled = unansweredQuestions.sort(() => Math.random() - 0.5);
+                selectedQuestions = shuffled.slice(0, config.questionCount) as Question[];
             }
 
-            const { data: allQuestions, error: fetchError } = await query;
-
-            if (fetchError) throw fetchError;
-
-            // Filter out already answered questions
-            const unansweredQuestions = allQuestions?.filter((q: any) => !answeredIds.has(q.id)) || [];
-
-            // Shuffle and limit
-            const shuffled = unansweredQuestions.sort(() => Math.random() - 0.5);
-            const selectedQuestions = shuffled.slice(0, config.questionCount);
-
             if (selectedQuestions.length === 0) {
-                throw new Error('No new questions available for the selected topics. Try different topics or reset your progress.');
+                throw new Error('No questions available for the selected filters. Try different topics or reset your progress.');
             }
 
             // Create session in database
@@ -137,7 +218,7 @@ export function usePractice() {
 
             setState({
                 session: session as PracticeSession,
-                questions: selectedQuestions as Question[],
+                questions: selectedQuestions,
                 currentIndex: 0,
                 answers: {},
                 timeRemaining: config.mode === 'timed' ? config.timePerQuestion || 60 : null,
@@ -166,6 +247,26 @@ export function usePractice() {
             is_correct: isCorrect,
             time_taken_seconds: timeTaken,
         } as any);
+
+        // Log mistake if incorrect
+        if (!isCorrect) {
+            const { error: mistakeError } = await supabase.from('mistake_logs').insert({
+                user_id: user.id,
+                question_id: currentQuestion.id,
+                user_answer: answer,
+                correct_answer: currentQuestion.correct_answer,
+                context: 'practice',
+                session_id: state.session.id,
+                time_taken_seconds: timeTaken,
+                topic: currentQuestion.topic,
+                subtopic: currentQuestion.subtopic,
+                difficulty: currentQuestion.difficulty,
+            } as any);
+
+            if (mistakeError) {
+                console.error('Error logging mistake:', mistakeError);
+            }
+        }
 
         // Update user_progress to track this question as answered
         const { error: progressError } = await supabase.from('user_progress').upsert({
