@@ -160,6 +160,18 @@ export default function AdminDashboard() {
                             </div>
                         </a>
                         <a
+                            href="/admin/taxonomy"
+                            className="flex items-center gap-4 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors group"
+                        >
+                            <div className="bg-blue-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                                <Settings className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-slate-900">Taxonomy Management</h3>
+                                <p className="text-sm text-slate-500">Manage Subjects, Topics, and Subtopics</p>
+                            </div>
+                        </a>
+                        <a
                             href="/admin/practice"
                             className="flex items-center gap-4 p-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 transition-colors group"
                         >
