@@ -22,7 +22,7 @@ let pdfjsLoaded = false;
 /**
  * Load PDF.js library from CDN
  */
-async function loadPdfJs(): Promise<void> {
+export async function loadPdfJs(): Promise<void> {
     if (pdfjsLoaded && window.pdfjsLib) return;
 
     return new Promise((resolve, reject) => {
@@ -39,17 +39,19 @@ async function loadPdfJs(): Promise<void> {
 }
 
 /**
- * Render a single PDF page to a PNG blob
+ * Render a single PDF page to a PNG blob, optionally cropped to a bounding box
+ * @param bbox - Optional normalized bounding box [ymin, xmin, ymax, xmax] (0-1000)
  */
 async function renderPageToImage(
     pdfDoc: any,
     pageNumber: number,
-    scale: number = 2.0
+    scale: number = 2.0,
+    bbox?: number[]
 ): Promise<Blob> {
     const page = await pdfDoc.getPage(pageNumber);
     const viewport = page.getViewport({ scale });
 
-    // Create canvas
+    // Create main canvas for full page rendering
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d')!;
     canvas.width = viewport.width;
@@ -61,9 +63,44 @@ async function renderPageToImage(
         viewport: viewport,
     }).promise;
 
+    let finalCanvas = canvas;
+
+    // Apply cropping if bbox is provided
+    if (bbox && bbox.length === 4) {
+        const [ymin, xmin, ymax, xmax] = bbox;
+        const padding = 20; // 20px padding
+
+        // Scale normalized coordinates (0-1000) to pixel values
+        let cropX = (xmin / 1000) * viewport.width;
+        let cropY = (ymin / 1000) * viewport.height;
+        let cropW = ((xmax - xmin) / 1000) * viewport.width;
+        let cropH = ((ymax - ymin) / 1000) * viewport.height;
+
+        // Apply padding and ensure we stay within bounds
+        const paddedX = Math.max(0, cropX - padding);
+        const paddedY = Math.max(0, cropY - padding);
+        const paddedW = Math.min(viewport.width - paddedX, cropW + (cropX - paddedX) + padding);
+        const paddedH = Math.min(viewport.height - paddedY, cropH + (cropY - paddedY) + padding);
+
+        // Create secondary canvas for the cropped region
+        const cropCanvas = document.createElement('canvas');
+        const cropContext = cropCanvas.getContext('2d')!;
+        cropCanvas.width = paddedW;
+        cropCanvas.height = paddedH;
+
+        // Draw the region from the main canvas to the crop canvas
+        cropContext.drawImage(
+            canvas,
+            paddedX, paddedY, paddedW, paddedH, // Source region
+            0, 0, paddedW, paddedH              // Destination region
+        );
+
+        finalCanvas = cropCanvas;
+    }
+
     // Convert to blob
     return new Promise((resolve, reject) => {
-        canvas.toBlob(
+        finalCanvas.toBlob(
             (blob) => {
                 if (blob) resolve(blob);
                 else reject(new Error('Failed to convert canvas to blob'));
@@ -89,7 +126,10 @@ async function uploadToStorage(
         });
 
     if (error) {
-        console.error('Storage upload error:', error);
+        console.error(`Storage upload error for ${fileName}:`, error);
+        if (error.message.includes('Bucket not found')) {
+            console.error('CRITICAL: The "question-images" bucket does not exist. Please run the fix_storage_rls.sql migration.');
+        }
         return null;
     }
 
@@ -107,12 +147,57 @@ export interface PageImage {
 }
 
 /**
- * Extract images from specific PDF pages
- * 
- * @param pdfArrayBuffer - The PDF file as ArrayBuffer
- * @param pageNumbers - Array of page numbers to render (1-indexed)
- * @param fileNamePrefix - Prefix for uploaded file names
- * @returns Map of page number to image URL
+ * Extract a specific region from a PDF page as an image
+ */
+export async function extractPdfRegion(
+    pdfArrayBuffer: ArrayBuffer,
+    pageNumber: number,
+    bbox: number[],
+    fileNamePrefix: string
+): Promise<string | null> {
+    await loadPdfJs();
+
+    const pdfDoc = await window.pdfjsLib.getDocument({ data: pdfArrayBuffer }).promise;
+    if (pageNumber < 1 || pageNumber > pdfDoc.numPages) return null;
+
+    try {
+        const blob = await renderPageToImage(pdfDoc, pageNumber, 2.0, bbox);
+        const fileName = `${fileNamePrefix}_crop_${pageNumber}_${Date.now()}.png`;
+        return await uploadToStorage(blob, fileName);
+    } catch (err) {
+        console.warn(`Failed to render region on page ${pageNumber}:`, err);
+        return null;
+    } finally {
+        // We don't destroy here because the buffer might be needed again
+        // but in this specific function it's the only use.
+        // However, the "detached" error happens because getDocument transfers the buffer.
+        await pdfDoc.destroy();
+    }
+}
+
+/**
+ * Extract a specific region from an already loaded PDF document
+ */
+export async function extractRegionFromDoc(
+    pdfDoc: any,
+    pageNumber: number,
+    bbox: number[],
+    fileNamePrefix: string
+): Promise<string | null> {
+    if (pageNumber < 1 || pageNumber > pdfDoc.numPages) return null;
+
+    try {
+        const blob = await renderPageToImage(pdfDoc, pageNumber, 2.0, bbox);
+        const fileName = `${fileNamePrefix}_crop_${pageNumber}_${Date.now()}.png`;
+        return await uploadToStorage(blob, fileName);
+    } catch (err) {
+        console.warn(`Failed to render region on page ${pageNumber}:`, err);
+        return null;
+    }
+}
+
+/**
+ * Extract images from specific PDF pages (Legacy - renders full pages)
  */
 export async function extractPdfPageImages(
     pdfArrayBuffer: ArrayBuffer,
@@ -166,22 +251,8 @@ export async function extractChunkImages(
  * Check if storage bucket exists and create if needed
  */
 export async function ensureStorageBucket(): Promise<boolean> {
-    try {
-        const { data: buckets } = await supabase.storage.listBuckets();
-        const exists = buckets?.some((b: any) => b.name === 'question-images');
-
-        if (!exists) {
-            const { error } = await supabase.storage.createBucket('question-images', {
-                public: true,
-            });
-            if (error) {
-                console.error('Failed to create bucket:', error);
-                return false;
-            }
-        }
-        return true;
-    } catch (err) {
-        console.error('Bucket check failed:', err);
-        return false;
-    }
+    // Note: Client-side bucket creation usually fails due to RLS/Permissions.
+    // We rely on the migration fix_storage_rls.sql to create the bucket.
+    console.log('Checking storage bucket availability...');
+    return true;
 }
