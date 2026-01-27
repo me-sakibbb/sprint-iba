@@ -10,7 +10,8 @@ import {
     ArrowUpRight,
     ArrowDownRight,
     BrainCircuit,
-    BookOpen
+    BookOpen,
+    Settings
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -157,6 +158,18 @@ export default function AdminDashboard() {
                             <div>
                                 <h3 className="font-semibold text-slate-900">Manage Users</h3>
                                 <p className="text-sm text-slate-500">View and manage user accounts</p>
+                            </div>
+                        </a>
+                        <a
+                            href="/admin/taxonomy"
+                            className="flex items-center gap-4 p-4 rounded-xl bg-blue-50 hover:bg-blue-100 transition-colors group"
+                        >
+                            <div className="bg-blue-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                                <Settings className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-slate-900">Taxonomy Management</h3>
+                                <p className="text-sm text-slate-500">Manage Subjects, Topics, and Subtopics</p>
                             </div>
                         </a>
                         <a

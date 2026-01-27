@@ -1,73 +1,82 @@
-# Welcome to your Lovable project
+# SprintIBA - Advanced Exam Preparation Platform
 
-## Project info
+**SprintIBA** is a comprehensive, AI-powered platform designed for students preparing for IBA (Institute of Business Administration) and other competitive exams. It streamlines the study process by combining intelligent content extraction with robust practice and testing tools.
 
-**URL**: https://lovable.dev/projects/74059ea3-6562-4329-a83a-31db8c0d8c04
+## 🚀 Key Features
 
-## How can I edit this code?
+- **AI Question Extractor**: Automatically extract MCQs from PDF documents using Google Gemini AI. 
+  - Supports complex formatting and LaTeX equations.
+  - Advanced regional image extraction from PDFs.
+  - Automatic categorization into subjects and topics.
+- **Taxonomy Management**: A hierarchical system to manage Subjects, Topics, and Subtopics, ensuring a structured question bank.
+- **Practice Engine**: 
+  - Interactive practice sessions with instant feedback.
+  - AI-generated explanations for every question.
+  - Support for mathematical formulas via LaTeX.
+- **Exam System**: 
+  - Full-scale Mock Exams and Live Exam sessions.
+  - Timed environments to simulate real test conditions.
+- **Analytics Dashboard**: 
+  - Comprehensive performance tracking for students.
+  - Admin insights into user activity and content usage.
+- **Rich Editor**: Integrated Markdown and LaTeX editor for creating and editing high-quality educational content.
 
-There are several ways of editing your application.
+## 🛠️ Tech Stack
 
-**Use Lovable**
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Backend & Database**: [Supabase](https://supabase.com/) (PostgreSQL, Auth, Storage, Edge Functions)
+- **AI Integration**: [Google Gemini API](https://ai.google.dev/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) & [Shadcn UI](https://ui.shadcn.com/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **PDF Processing**: [PDF.js](https://mozilla.github.io/pdf.js/) & [pdf-lib](https://pdf-lib.js.org/)
+- **Charts**: [Recharts](https://recharts.org/)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/74059ea3-6562-4329-a83a-31db8c0d8c04) and start prompting.
+## 🏁 Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js (Latest LTS recommended)
+- npm or yarn
+- A Supabase project
+- A Google Gemini API key
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Taalha3359/sprint-iba.git
+   cd sprint-iba
+   ```
 
-Follow these steps:
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. **Environment Setup**:
+   Create a `.env.local` file in the root directory and add your credentials:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. **Run the development server**:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) to see the result.
 
-# Step 3: Install the necessary dependencies.
-npm i
+## 📂 Project Structure
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+- `src/app`: Next.js pages, layouts, and API routes.
+- `src/components`: UI components organized by feature (admin, practice, etc.).
+- `src/hooks`: Custom React hooks for state management and data fetching.
+- `src/services`: Core logic for AI extraction, PDF processing, and API services.
+- `src/integrations`: Supabase client and generated types.
+- `supabase/migrations`: SQL migrations for the database schema.
 
-**Edit a file directly in GitHub**
+## 📄 License
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/74059ea3-6562-4329-a83a-31db8c0d8c04) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+This project is private and intended for internal use.

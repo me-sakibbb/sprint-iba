@@ -6,22 +6,32 @@ import { useDebounce } from './use-debounce';
 export interface Question {
     local_id: string;
     question_text: string;
-    options: Record<string, string>; // Changed to support variable options (A, B, C, D, E, etc.)
+    question_text_formatted?: string;
+    options: Record<string, string>; // Plain text options
+    options_formatted?: Record<string, string>; // Formatted options
     correct_answer: string;
     topic: string;
     subtopic: string;
     difficulty: string;
     explanation: string;
+    explanation_formatted?: string;
     is_verified: boolean;
     has_image?: boolean;
     image_url?: string;
     image_description?: string;
+    subject_id?: string;
+    topic_id?: string;
+    subtopic_id?: string;
+    images?: Array<{ id: string; image_url: string; description?: string; image_order: number }>;
 }
 
 export interface FilterState {
     search: string;
     verificationStatus: 'all' | 'verified' | 'unverified';
     topic: string;
+    subject_id: string;
+    topic_id: string;
+    subtopic_id: string;
     difficulty: 'all' | 'easy' | 'medium' | 'hard';
     itemsPerPage: number;
 }
@@ -30,6 +40,9 @@ const DEFAULT_FILTERS: FilterState = {
     search: '',
     verificationStatus: 'unverified',
     topic: '',
+    subject_id: '',
+    topic_id: '',
+    subtopic_id: '',
     difficulty: 'all',
     itemsPerPage: 10,
 };
@@ -54,7 +67,7 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
             .not('topic', 'is', null);
 
         if (data) {
-            const uniqueTopics = [...new Set(data.map((q: any) => q.topic).filter(Boolean))];
+            const uniqueTopics = Array.from(new Set(data.map((q: any) => q.topic).filter(Boolean)));
             setAvailableTopics(uniqueTopics.sort());
         }
     }, []);
@@ -75,9 +88,20 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
                 query = query.eq('is_verified', false);
             }
 
-            // Apply topic filter
+            // Apply topic filter (legacy string)
             if (filters.topic) {
                 query = query.eq('topic', filters.topic);
+            }
+
+            // Apply taxonomy filters (IDs)
+            if (filters.subject_id) {
+                query = query.eq('subject_id', filters.subject_id);
+            }
+            if (filters.topic_id) {
+                query = query.eq('topic_id', filters.topic_id);
+            }
+            if (filters.subtopic_id) {
+                query = query.eq('subtopic_id', filters.subtopic_id);
             }
 
             // Apply difficulty filter
@@ -103,7 +127,7 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
 
             let dataQuery = supabase
                 .from('questions')
-                .select('*');
+                .select('*, question_images(*)');
 
             // Reapply filters for data query
             if (filters.verificationStatus === 'verified') {
@@ -114,6 +138,16 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
 
             if (filters.topic) {
                 dataQuery = dataQuery.eq('topic', filters.topic);
+            }
+
+            if (filters.subject_id) {
+                dataQuery = dataQuery.eq('subject_id', filters.subject_id);
+            }
+            if (filters.topic_id) {
+                dataQuery = dataQuery.eq('topic_id', filters.topic_id);
+            }
+            if (filters.subtopic_id) {
+                dataQuery = dataQuery.eq('subtopic_id', filters.subtopic_id);
             }
 
             if (filters.difficulty !== 'all') {
@@ -131,7 +165,7 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
             if (error) throw error;
 
             const formattedQuestions: Question[] = (data || []).map((q: any) => {
-                // Convert array options to labeled object
+                // Convert array options to labeled object (plain text)
                 const optionsObj: Record<string, string> = {};
                 const labels = ['A', 'B', 'C', 'D', 'E'];
                 if (Array.isArray(q.options)) {
@@ -144,6 +178,16 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
                     Object.assign(optionsObj, q.options);
                 }
 
+                // Convert formatted options array to labeled object
+                const optionsFormattedObj: Record<string, string> = {};
+                if (Array.isArray(q.options_formatted)) {
+                    q.options_formatted.forEach((opt: string, idx: number) => {
+                        if (idx < labels.length) {
+                            optionsFormattedObj[labels[idx]] = opt;
+                        }
+                    });
+                }
+
                 // Convert numeric correct_answer to letter label
                 let correctAnswer = q.correct_answer;
                 if (correctAnswer && !isNaN(Number(correctAnswer))) {
@@ -154,16 +198,23 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
                 return {
                     local_id: q.id,
                     question_text: q.question_text,
+                    question_text_formatted: q.question_text_formatted || q.question_text,
                     options: optionsObj,
+                    options_formatted: Object.keys(optionsFormattedObj).length > 0 ? optionsFormattedObj : optionsObj,
                     correct_answer: correctAnswer,
                     topic: q.topic || '',
                     subtopic: q.subtopic || '',
                     difficulty: q.difficulty || 'medium',
                     explanation: q.explanation || '',
+                    explanation_formatted: q.explanation_formatted || q.explanation,
                     is_verified: q.is_verified,
                     has_image: q.has_image || false,
                     image_url: q.image_url || null,
                     image_description: q.image_description || null,
+                    subject_id: q.subject_id,
+                    topic_id: q.topic_id,
+                    subtopic_id: q.subtopic_id,
+                    images: q.question_images || [],
                 };
             });
 
@@ -174,7 +225,7 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
         } finally {
             setLoading(false);
         }
-    }, [filters.verificationStatus, filters.topic, filters.difficulty, filters.itemsPerPage, debouncedSearch]);
+    }, [filters.verificationStatus, filters.topic, filters.subject_id, filters.topic_id, filters.subtopic_id, filters.difficulty, filters.itemsPerPage, debouncedSearch]);
 
     // Refetch when filters change
     useEffect(() => {

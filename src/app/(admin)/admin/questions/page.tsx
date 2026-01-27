@@ -24,14 +24,25 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { MarkdownLatexRenderer } from "@/components/admin/MarkdownLatexRenderer";
+import { useTaxonomy, useSubjects, useTopics, useSubtopics } from "@/hooks/useTaxonomy";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import dynamic from 'next/dynamic';
+
+const MDEditor = dynamic(
+    () => import("@uiw/react-md-editor").then((mod) => mod.default),
+    { ssr: false }
+);
+import "@uiw/react-md-editor/markdown-editor.css";
+import "@uiw/react-markdown-preview/markdown.css";
 
 export default function QuestionExtractor() {
     // Extraction state
     const [file, setFile] = useState<File | null>(null);
-    const [pagesPerChunk, setPagesPerChunk] = useState(3);
+    const [pagesPerChunk, setPagesPerChunk] = useState(2);
     const [startPage, setStartPage] = useState<number | undefined>(undefined);
     const [endPage, setEndPage] = useState<number | undefined>(undefined);
-    const [selectedModel, setSelectedModel] = useState<string>('gemini-1.5-flash');
+    const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
 
     const { extract, stop, progress, isProcessing } = useQuestionExtraction();
     const {
@@ -49,6 +60,11 @@ export default function QuestionExtractor() {
         updateQuestionLocally,
         removeQuestionLocally,
     } = useQuestionFilters();
+
+    // Taxonomy hooks for main filters
+    const { subjects } = useSubjects();
+    const { topics: mainTopics } = useTopics(filters.subject_id || undefined);
+    const { subtopics: mainSubtopics } = useSubtopics(filters.topic_id || undefined);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -73,17 +89,26 @@ export default function QuestionExtractor() {
         try {
             // Convert options object to array
             const optionsArray = Object.values(q.options).filter(Boolean);
+            const optionsFormattedArray = q.options_formatted
+                ? Object.values(q.options_formatted).filter(Boolean)
+                : optionsArray;
 
             const { error } = await supabase
                 .from('questions')
                 .update({
                     question_text: q.question_text,
+                    question_text_formatted: q.question_text_formatted,
                     options: optionsArray,
+                    options_formatted: optionsFormattedArray,
                     correct_answer: q.correct_answer,
                     topic: q.topic,
                     subtopic: q.subtopic,
                     difficulty: q.difficulty.toLowerCase(),
                     explanation: q.explanation,
+                    explanation_formatted: q.explanation_formatted,
+                    subject_id: q.subject_id,
+                    topic_id: q.topic_id,
+                    subtopic_id: q.subtopic_id,
                     is_verified: true
                 } as any)
                 .eq('id', q.local_id);
@@ -134,7 +159,6 @@ export default function QuestionExtractor() {
             {/* Token Usage Stats */}
             <TokenUsageStats />
 
-            {/* Upload Section */}
             {/* Upload Section */}
             <Card className="border-slate-200">
                 <CardContent className="p-6">
@@ -319,21 +343,80 @@ export default function QuestionExtractor() {
                             </SelectContent>
                         </Select>
 
-                        {/* Topic Filter */}
+                        {/* Subject Filter */}
                         <Select
-                            value={filters.topic || 'all'}
-                            onValueChange={v => updateFilter('topic', v === 'all' ? '' : v)}
+                            value={filters.subject_id || 'all'}
+                            onValueChange={v => {
+                                updateFilter('subject_id', v === 'all' ? '' : v);
+                                updateFilter('topic_id', '');
+                                updateFilter('subtopic_id', '');
+                            }}
+                        >
+                            <SelectTrigger className="w-[150px]">
+                                <SelectValue placeholder="Subject" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Subjects</SelectItem>
+                                {subjects.map(s => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {/* Topic Filter (Taxonomy) */}
+                        <Select
+                            value={filters.topic_id || 'all'}
+                            onValueChange={v => {
+                                updateFilter('topic_id', v === 'all' ? '' : v);
+                                updateFilter('subtopic_id', '');
+                            }}
+                            disabled={!filters.subject_id}
                         >
                             <SelectTrigger className="w-[150px]">
                                 <SelectValue placeholder="Topic" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Topics</SelectItem>
-                                {availableTopics.map(topic => (
-                                    <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+                                {mainTopics.map(t => (
+                                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+
+                        {/* Subtopic Filter (Taxonomy) */}
+                        <Select
+                            value={filters.subtopic_id || 'all'}
+                            onValueChange={v => updateFilter('subtopic_id', v === 'all' ? '' : v)}
+                            disabled={!filters.topic_id}
+                        >
+                            <SelectTrigger className="w-[150px]">
+                                <SelectValue placeholder="Subtopic" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Subtopics</SelectItem>
+                                {mainSubtopics.map(st => (
+                                    <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {/* Legacy Topic Filter (Hidden if taxonomy is used) */}
+                        {!filters.subject_id && (
+                            <Select
+                                value={filters.topic || 'all'}
+                                onValueChange={v => updateFilter('topic', v === 'all' ? '' : v)}
+                            >
+                                <SelectTrigger className="w-[150px]">
+                                    <SelectValue placeholder="Legacy Topic" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Legacy Topics</SelectItem>
+                                    {availableTopics.map(topic => (
+                                        <SelectItem key={topic} value={topic}>{topic}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
 
                         {/* Difficulty Filter */}
                         <Select
@@ -382,58 +465,54 @@ export default function QuestionExtractor() {
             </Card>
 
             {/* Questions List */}
-            < div className="space-y-3" >
-                {
-                    loading ? (
-                        <div className="flex justify-center py-12" >
-                            <Loader2 className="w-8 h-8 text-slate-300 animate-spin" />
-                        </div>
-                    ) : questions.length === 0 ? (
-                        <div className="text-center py-12 text-slate-400">
-                            No questions found
-                        </div>
-                    ) : (
-                        questions.map((q, idx) => (
-                            <QuestionCard
-                                key={q.local_id}
-                                q={q}
-                                idx={(currentPage - 1) * filters.itemsPerPage + idx}
-                                onDelete={handleDelete}
-                                onUpdate={updateQuestionLocally}
-                                onVerify={() => handleVerify(q)}
-                            />
-                        ))
-                    )
-                }
+            <div className="space-y-3">
+                {loading ? (
+                    <div className="flex justify-center py-12">
+                        <Loader2 className="w-8 h-8 text-slate-300 animate-spin" />
+                    </div>
+                ) : questions.length === 0 ? (
+                    <div className="text-center py-12 text-slate-400">
+                        No questions found
+                    </div>
+                ) : (
+                    questions.map((q, idx) => (
+                        <QuestionCard
+                            key={q.local_id}
+                            q={q}
+                            idx={(currentPage - 1) * filters.itemsPerPage + idx}
+                            onDelete={handleDelete}
+                            onUpdate={updateQuestionLocally}
+                            onVerify={() => handleVerify(q)}
+                        />
+                    ))
+                )}
 
                 {/* Pagination */}
-                {
-                    totalPages > 1 && (
-                        <div className="flex justify-center items-center gap-4 pt-4">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => goToPage(currentPage - 1)}
-                                disabled={currentPage === 1 || loading}
-                            >
-                                Previous
-                            </Button>
-                            <span className="text-sm text-slate-600">
-                                Page {currentPage} of {totalPages}
-                            </span>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => goToPage(currentPage + 1)}
-                                disabled={currentPage === totalPages || loading}
-                            >
-                                Next
-                            </Button>
-                        </div>
-                    )
-                }
-            </div >
-        </div >
+                {totalPages > 1 && (
+                    <div className="flex justify-center items-center gap-4 pt-4">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => goToPage(currentPage - 1)}
+                            disabled={currentPage === 1 || loading}
+                        >
+                            Previous
+                        </Button>
+                        <span className="text-sm text-slate-600">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => goToPage(currentPage + 1)}
+                            disabled={currentPage === totalPages || loading}
+                        >
+                            Next
+                        </Button>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -452,6 +531,32 @@ function QuestionCard({
     onVerify: () => void;
 }) {
     const [open, setOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<string>("edit");
+
+    // Taxonomy hooks
+    const { subjects } = useSubjects();
+    const { topics } = useTopics(q.subject_id || undefined);
+    const { subtopics } = useSubtopics(q.topic_id || undefined);
+
+    // Update taxonomy helpers
+    const handleSubjectChange = (subjectId: string) => {
+        onUpdate(q.local_id, 'subject_id', subjectId);
+        onUpdate(q.local_id, 'topic_id', null);
+        onUpdate(q.local_id, 'subtopic_id', null);
+    };
+
+    const handleTopicChange = (topicId: string) => {
+        const topic = topics.find(t => t.id === topicId);
+        onUpdate(q.local_id, 'topic_id', topicId);
+        onUpdate(q.local_id, 'subtopic_id', null);
+        if (topic) onUpdate(q.local_id, 'topic', topic.name);
+    };
+
+    const handleSubtopicChange = (subtopicId: string) => {
+        const subtopic = subtopics.find(s => s.id === subtopicId);
+        onUpdate(q.local_id, 'subtopic_id', subtopicId);
+        if (subtopic) onUpdate(q.local_id, 'subtopic', subtopic.name);
+    };
 
     return (
         <Card className={`transition-all ${open ? 'border-indigo-200 shadow-md ring-1 ring-indigo-50' : 'border-slate-200 hover:border-slate-300'}`}>
@@ -463,16 +568,26 @@ function QuestionCard({
                     {idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-semibold text-slate-900 truncate">
-                        {q.question_text || "Empty Question"}
-                    </h4>
-                    <div className="flex gap-3 mt-1 items-center">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="text-sm font-semibold text-slate-900 line-clamp-1">
+                            <MarkdownLatexRenderer
+                                content={q.question_text_formatted || q.question_text || "Empty Question"}
+                                className="inline-block"
+                            />
+                        </div>
+                    </div>
+                    <div className="flex gap-3 items-center">
                         <Badge variant="secondary" className="text-[10px] font-bold text-indigo-600 bg-indigo-50">
                             {q.topic || 'No Topic'}
                         </Badge>
+                        {q.subtopic && (
+                            <Badge variant="outline" className="text-[10px] text-slate-500 border-slate-200">
+                                {q.subtopic}
+                            </Badge>
+                        )}
                         <span className="w-1 h-1 rounded-full bg-slate-300" />
                         <span className="text-[10px] font-bold text-slate-400 uppercase">{q.difficulty}</span>
-                        {q.has_image && (
+                        {(q.has_image || (q.images && q.images.length > 0)) && (
                             <>
                                 <span className="w-1 h-1 rounded-full bg-slate-300" />
                                 <ImageIcon className="w-3 h-3 text-amber-500" />
@@ -492,126 +607,237 @@ function QuestionCard({
             {open && (
                 <CardContent className="pt-0 border-t border-slate-50 space-y-6">
                     {/* Image Display */}
-                    {q.has_image && q.image_url && (
-                        <div className="mt-4">
-                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-                                <ImageIcon className="w-3 h-3" /> Question Image
-                            </Label>
-                            <img
-                                src={q.image_url}
-                                alt="Question image"
-                                className="max-w-full rounded-lg border border-slate-200"
-                            />
+                    {(q.has_image || (q.images && q.images.length > 0)) && (
+                        <div className="mt-4 space-y-4">
+                            {q.image_url && (
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                        <ImageIcon className="w-3 h-3" /> Main Image
+                                    </Label>
+                                    <img
+                                        src={q.image_url}
+                                        alt="Question image"
+                                        className="max-w-full rounded-lg border border-slate-200"
+                                    />
+                                </div>
+                            )}
+
+                            {q.images && q.images.length > 0 && (
+                                <div className="grid grid-cols-1 gap-4">
+                                    {q.images.map((img, i) => (
+                                        <div key={img.id || i} className="space-y-2">
+                                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                                <ImageIcon className="w-3 h-3" /> Image {i + 1} {img.description && `- ${img.description}`}
+                                            </Label>
+                                            <img
+                                                src={img.image_url}
+                                                alt={`Extra image ${i + 1}`}
+                                                className="max-w-full rounded-lg border border-slate-200"
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
-                        <div className="lg:col-span-8">
-                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                <MessageSquareQuote className="w-3 h-3" /> Question Text
-                            </Label>
-                            <Textarea
-                                value={q.question_text}
-                                onChange={e => onUpdate(q.local_id, 'question_text', e.target.value)}
-                                className="mt-2 min-h-[100px]"
-                            />
-                        </div>
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <TabsList className="grid w-[200px] grid-cols-2">
+                                <TabsTrigger value="edit">Edit</TabsTrigger>
+                                <TabsTrigger value="preview">Preview</TabsTrigger>
+                            </TabsList>
 
-                        <div className="lg:col-span-4 space-y-4">
-                            <div>
-                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Tag className="w-3 h-3" /> Topic
-                                </Label>
-                                <Input
-                                    value={q.topic}
-                                    onChange={e => onUpdate(q.local_id, 'topic', e.target.value)}
-                                    className="mt-2"
-                                />
-                            </div>
-                            <div>
-                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Layers className="w-3 h-3" /> Sub-topic
-                                </Label>
-                                <Input
-                                    value={q.subtopic}
-                                    onChange={e => onUpdate(q.local_id, 'subtopic', e.target.value)}
-                                    className="mt-2"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Options</Label>
+                            {/* Taxonomy Selectors */}
                             <div className="flex gap-2">
-                                <button
-                                    onClick={() => {
-                                        const keys = Object.keys(q.options);
-                                        const labels = ['A', 'B', 'C', 'D', 'E'];
-                                        const nextLabel = labels[keys.length];
-                                        if (nextLabel && keys.length < 5) {
-                                            onUpdate(q.local_id, 'options', { ...q.options, [nextLabel]: '' });
-                                        }
-                                    }}
-                                    disabled={Object.keys(q.options).length >= 5}
-                                    className="text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 disabled:opacity-50"
-                                >
-                                    + Add Option
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        const keys = Object.keys(q.options);
-                                        if (keys.length > 2) {
-                                            const newOptions = { ...q.options };
-                                            delete newOptions[keys[keys.length - 1]];
-                                            onUpdate(q.local_id, 'options', newOptions);
-                                        }
-                                    }}
-                                    disabled={Object.keys(q.options).length <= 2}
-                                    className="text-xs px-2 py-1 rounded bg-rose-50 text-rose-600 hover:bg-rose-100 disabled:opacity-50"
-                                >
-                                    - Remove
-                                </button>
+                                <Select value={q.subject_id || "unassigned"} onValueChange={(v: string) => handleSubjectChange(v === "unassigned" ? "" : v)}>
+                                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                                        <SelectValue placeholder="Subject" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="unassigned">Select Subject</SelectItem>
+                                        {subjects.map(s => (
+                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <Select value={q.topic_id || "unassigned"} onValueChange={(v: string) => handleTopicChange(v === "unassigned" ? "" : v)} disabled={!q.subject_id}>
+                                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                                        <SelectValue placeholder="Topic" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="unassigned">Select Topic</SelectItem>
+                                        {topics.map(t => (
+                                            <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <Select value={q.subtopic_id || "unassigned"} onValueChange={(v: string) => handleSubtopicChange(v === "unassigned" ? "" : v)} disabled={!q.topic_id}>
+                                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                                        <SelectValue placeholder="Subtopic" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="unassigned">Select Subtopic</SelectItem>
+                                        {subtopics.map(s => (
+                                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {Object.keys(q.options).map(key => (
-                                <div
-                                    key={key}
-                                    className={`p-4 rounded-xl border transition-all flex items-start gap-3 ${q.correct_answer === key ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
-                                        }`}
-                                >
-                                    <button
-                                        onClick={() => onUpdate(q.local_id, 'correct_answer', key)}
-                                        className={`w-7 h-7 rounded-lg text-xs font-bold border shrink-0 ${q.correct_answer === key
-                                            ? 'bg-emerald-600 border-emerald-600 text-white'
-                                            : 'bg-white border-slate-200 text-slate-400 hover:border-indigo-500'
-                                            }`}
-                                    >
-                                        {key}
-                                    </button>
-                                    <Textarea
-                                        className="w-full bg-transparent text-sm resize-none border-0 p-0 focus-visible:ring-0 min-h-[40px]"
-                                        value={q.options[key]}
-                                        onChange={e => onUpdate(q.local_id, 'options', { ...q.options, [key]: e.target.value })}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    </div>
 
-                    <div className="space-y-3">
-                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                            <BrainCircuit className="w-3 h-3" /> AI Explanation
-                        </Label>
-                        <Textarea
-                            value={q.explanation || ''}
-                            onChange={e => onUpdate(q.local_id, 'explanation', e.target.value)}
-                            placeholder="AI reasoning goes here..."
-                            className="min-h-[100px] text-sm"
-                        />
-                    </div>
+                        <TabsContent value="edit" className="space-y-6">
+                            {/* Question Text */}
+                            <div className="space-y-2" data-color-mode="light">
+                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <MessageSquareQuote className="w-3 h-3" /> Question Text (Markdown/LaTeX supported)
+                                </Label>
+                                <MDEditor
+                                    value={q.question_text_formatted || q.question_text}
+                                    onChange={val => {
+                                        onUpdate(q.local_id, 'question_text_formatted', val || '');
+                                        onUpdate(q.local_id, 'question_text', val || '');
+                                    }}
+                                    preview="edit"
+                                    height={200}
+                                    className="mt-2"
+                                />
+                            </div>
+
+                            {/* Options */}
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Options</Label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                const keys = Object.keys(q.options);
+                                                const labels = ['A', 'B', 'C', 'D', 'E'];
+                                                const nextLabel = labels[keys.length];
+                                                if (nextLabel && keys.length < 5) {
+                                                    onUpdate(q.local_id, 'options', { ...q.options, [nextLabel]: '' });
+                                                    if (q.options_formatted) {
+                                                        onUpdate(q.local_id, 'options_formatted', { ...q.options_formatted, [nextLabel]: '' });
+                                                    }
+                                                }
+                                            }}
+                                            disabled={Object.keys(q.options).length >= 5}
+                                            className="text-xs px-2 py-1 rounded bg-indigo-50 text-indigo-600 hover:bg-indigo-100 disabled:opacity-50"
+                                        >
+                                            + Add Option
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const keys = Object.keys(q.options);
+                                                if (keys.length > 2) {
+                                                    const newOptions = { ...q.options };
+                                                    delete newOptions[keys[keys.length - 1]];
+                                                    onUpdate(q.local_id, 'options', newOptions);
+
+                                                    if (q.options_formatted) {
+                                                        const newFormatted = { ...q.options_formatted };
+                                                        delete newFormatted[keys[keys.length - 1]];
+                                                        onUpdate(q.local_id, 'options_formatted', newFormatted);
+                                                    }
+                                                }
+                                            }}
+                                            disabled={Object.keys(q.options).length <= 2}
+                                            className="text-xs px-2 py-1 rounded bg-rose-50 text-rose-600 hover:bg-rose-100 disabled:opacity-50"
+                                        >
+                                            - Remove
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {Object.keys(q.options).map(key => (
+                                        <div
+                                            key={key}
+                                            className={`p-4 rounded-xl border transition-all flex items-start gap-3 ${q.correct_answer === key ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'
+                                                }`}
+                                        >
+                                            <button
+                                                onClick={() => onUpdate(q.local_id, 'correct_answer', key)}
+                                                className={`w-7 h-7 rounded-lg text-xs font-bold border shrink-0 ${q.correct_answer === key
+                                                    ? 'bg-emerald-600 border-emerald-600 text-white'
+                                                    : 'bg-white border-slate-200 text-slate-400 hover:border-indigo-500'
+                                                    }`}
+                                            >
+                                                {key}
+                                            </button>
+                                            <Textarea
+                                                className="w-full bg-transparent text-sm resize-none border-0 p-0 focus-visible:ring-0 min-h-[40px] font-mono"
+                                                value={q.options_formatted?.[key] || q.options[key]}
+                                                onChange={e => {
+                                                    onUpdate(q.local_id, 'options', { ...q.options, [key]: e.target.value });
+                                                    onUpdate(q.local_id, 'options_formatted', { ...(q.options_formatted || q.options), [key]: e.target.value });
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Explanation */}
+                            <div className="space-y-3" data-color-mode="light">
+                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <BrainCircuit className="w-3 h-3" /> AI Explanation
+                                </Label>
+                                <MDEditor
+                                    value={q.explanation_formatted || q.explanation || ''}
+                                    onChange={val => {
+                                        onUpdate(q.local_id, 'explanation_formatted', val || '');
+                                        onUpdate(q.local_id, 'explanation', val || '');
+                                    }}
+                                    preview="edit"
+                                    height={200}
+                                    className="mt-2"
+                                />
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="preview" className="space-y-6">
+                            {/* Question Preview */}
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Question Preview</Label>
+                                <div className="p-4 rounded-lg border border-slate-200 bg-white prose prose-sm max-w-none">
+                                    <MarkdownLatexRenderer content={q.question_text_formatted || q.question_text} />
+                                </div>
+                            </div>
+
+                            {/* Options Preview */}
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Options Preview</Label>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {Object.keys(q.options).map(key => (
+                                        <div
+                                            key={key}
+                                            className={`p-4 rounded-xl border flex items-start gap-3 ${q.correct_answer === key ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200'}`}
+                                        >
+                                            <div className={`w-7 h-7 rounded-lg text-xs font-bold border shrink-0 flex items-center justify-center ${q.correct_answer === key
+                                                ? 'bg-emerald-600 border-emerald-600 text-white'
+                                                : 'bg-white border-slate-200 text-slate-400'
+                                                }`}>
+                                                {key}
+                                            </div>
+                                            <div className="prose prose-sm max-w-none">
+                                                <MarkdownLatexRenderer content={q.options_formatted?.[key] || q.options[key]} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Explanation Preview */}
+                            <div className="space-y-2">
+                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Explanation Preview</Label>
+                                <div className="p-4 rounded-lg border border-slate-200 bg-slate-50 prose prose-sm max-w-none">
+                                    <MarkdownLatexRenderer content={q.explanation_formatted || q.explanation} />
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
 
                     <div className="flex justify-between items-center pt-4 border-t border-slate-100">
                         <div className="flex gap-2">

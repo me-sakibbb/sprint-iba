@@ -2,20 +2,36 @@ import { useState, useRef, useCallback } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { extractChunkImages, ensureStorageBucket } from '@/services/pdfImageService';
+import { extractChunkImages, ensureStorageBucket, extractPdfRegion, extractRegionFromDoc, loadPdfJs } from '@/services/pdfImageService';
 import { logAiUsage } from '@/services/aiUsageService';
 
 // --- Types ---
 export interface ExtractedQuestion {
     question_text: string;
+    question_text_formatted?: string; // Markdown with LaTeX
     options: string[]; // Changed from {A,B,C,D} to array to support 2-5 options
+    options_formatted?: string[]; // Markdown array
     correct_answer: string;
     topic: string;
     subtopic: string;
     difficulty: string;
     explanation: string;
+    explanation_formatted?: string; // Markdown with LaTeX
     has_image: boolean;
     image_description?: string;
+    image_url?: string;
+    image_bbox?: number[]; // [ymin, xmin, ymax, xmax]
+    image_page_number?: number;
+    subject_id?: string | null; // UUID from taxonomy
+    topic_id?: string | null; // UUID from taxonomy
+    subtopic_id?: string | null; // UUID from taxonomy
+    images?: Array<{
+        url: string;
+        description?: string;
+        bbox?: number[];
+        page_number?: number;
+        order: number
+    }>;
 }
 
 export interface ExtractionProgress {
@@ -46,8 +62,6 @@ const DEFAULT_CONFIG: ExtractionConfig = {
     pagesPerChunk: 3, // Reduced from 5 to ensure exhaustive extraction
     parallelChunks: 1, // Sequential by default for cost efficiency
 };
-
-
 
 // --- Hook ---
 export function useQuestionExtraction() {
@@ -89,7 +103,7 @@ export function useQuestionExtraction() {
             copiedPages.forEach(page => newPdf.addPage(page));
 
             const pdfBytes = await newPdf.save();
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
 
             chunks.push({
                 blob,
@@ -160,16 +174,26 @@ export function useQuestionExtraction() {
         chunk: PdfChunk,
         apiKey: string,
         fileName: string,
-        model: string
+        model: string,
+        taxonomyContext?: string
     ): Promise<{ questions: ExtractedQuestion[]; tokens: { total: number; prompt: number; completion: number } }> => {
         const fileUri = await uploadToGemini(chunk.blob, `${fileName}_chunk_${chunk.index}`, apiKey);
         const pageCount = chunk.endPage - chunk.startPage + 1;
 
-        const prompt = `You are an expert educational content extractor.
+        const prompt = `You are an expert educational content extractor specializing in preserving formatting and mathematical expressions.
 
 CONTEXT:
 - This PDF chunk contains ${pageCount} pages (Pages ${chunk.startPage} to ${chunk.endPage} of the original document).
 - PDFs may contain BOTH questions AND answer explanations/solutions.
+
+TAXONOMY MAPPING (CRITICAL):
+${taxonomyContext || 'No predefined taxonomy provided. Please identify topic and subtopic as strings.'}
+
+If a taxonomy is provided above, you MUST:
+1. Map each question to the most relevant Subject, Topic, and Subtopic.
+2. Return the corresponding "subject_id", "topic_id", and "subtopic_id" (UUIDs) in the JSON.
+3. If no clear match, use the "Others" category if available, or leave as null.
+4. Still provide the "topic" and "subtopic" as human-readable strings.
 
 CRITICAL RULES:
 1. EXTRACT EVERY SINGLE Multiple Choice Question (MCQ) found in ALL ${pageCount} PAGES of this chunk.
@@ -179,15 +203,44 @@ CRITICAL RULES:
 5. DO NOT extract pure answer keys or solution walkthroughs as questions.
 6. A valid MCQ has: a question stem + labeled options (can be 2, 3, 4, or 5 options).
 
+TEXT FORMATTING - PRESERVE ALL FORMATTING AS MARKDOWN:
+- **Bold text**: Use **text** for bold
+- *Italic text*: Use *text* for italic
+- Underlined text: Use <u>text</u> for underline
+- Headings: Use # for headings if needed
+- Lists: Use - or 1. for lists if they appear in questions
+- Combine formats: ***bold italic*** or **_bold italic_**
+
+MATHEMATICAL EXPRESSIONS - ALWAYS USE LATEX:
+- Inline math: Use $expression$ for inline formulas
+- Block math: Use $$expression$$ for display formulas
+- Examples:
+  * Equations: $x^2 + 2x + 1 = 0$ or $E = mc^2$
+  * Fractions: $\\frac{a}{b}$ or $\\frac{numerator}{denominator}$
+  * Subscripts/Superscripts: $x_1$, $y^2$, $x_i^2$
+  * Greek letters: $\\alpha$, $\\beta$, $\\pi$, $\\theta$
+  * Square roots: $\\sqrt{x}$ or $\\sqrt[n]{x}$
+  * Summations: $\\sum_{i=1}^{n} x_i$
+  * Integrals: $\\int_a^b f(x)dx$
+  * Matrices: $\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}$
+
 OPTION HANDLING:
 - Questions may have 2, 3, 4, or 5 options (not always 4).
 - Extract ALL options provided, in order.
 - Options may be labeled A/B/C/D/E or 1/2/3/4/5 or other formats.
 - Store options as an array of strings.
+- Preserve formatting in each option using Markdown + LaTeX.
+
+IMAGE DETECTION & REGIONAL EXTRACTION (CRITICAL):
+- If a question has an associated image/diagram/figure, set "has_image": true.
+- Provide "image_description" explaining what the image shows.
+- Provide "image_bbox": [ymin, xmin, ymax, xmax] as normalized coordinates (0-1000) of the image region on the page.
+- Provide "image_page_number": number, the 1-indexed page number within the provided text where the image is located.
+- If multiple images exist, list them in the "images" array with their respective "bbox" and "page_number".
 
 HOW TO HANDLE MIXED CONTENT:
 - If you see "1. Question... Ans: A. Explanation...", EXTRACT the question and options.
-- Put the "Explanation" part into the "explanation" field.
+- Put the "Explanation" part into the "explanation_formatted" field with Markdown/LaTeX.
 - DO NOT create a separate question for the explanation.
 
 WHAT TO IGNORE (Invalid Questions):
@@ -196,30 +249,45 @@ WHAT TO IGNORE (Invalid Questions):
 - Bullet points explaining terms (e.g., "• Volatile: This means...")
 
 FOR EACH VALID MCQ:
-1. Extract the question text (remove leading numbers).
-2. Extract all options as an array (2-5 options).
+1. Extract the question text with Markdown formatting and LaTeX for math.
+2. Extract all options as an array (2-5 options) with Markdown/LaTeX formatting.
 3. Determine the correct answer index (0-based: 0 for first option, 1 for second, etc.).
-4. **ALWAYS write a clear, detailed explanation** - this is MANDATORY for every question.
-5. Set has_image: true if needed.
+4. ALWAYS write a clear, detailed explanation with Markdown/LaTeX - this is MANDATORY.
+5. Set has_image: true if the question references an image.
+6. Identify the general topic and subtopic (we'll map to taxonomy later).
 
-OUTPUT (JSON array only):
+OUTPUT FORMAT (JSON array only):
 [{
-  "question_text": "The actual question text without numbering",
-  "options": ["First option text", "Second option text", "Third option text", "Fourth option text"],
-  "correct_answer": "2",
-  "topic": "",
-  "subtopic": "",
-  "explanation": "REQUIRED: Detailed explanation of why this answer is correct. Include reasoning, key concepts, and why other options are incorrect.",
-  "difficulty": "easy|medium|hard",
-  "has_image": false,
-  "image_description": ""
+  "question_text_formatted": "What is the value of $x$ in **this quadratic equation**: $x^2 + 5x + 6 = 0$?",
+  "options_formatted": [
+    "$x = -2$ or $x = -3$",
+    "$x = 2$ or $x = 3$",
+    "$x = -1$ or $x = -6$",
+    "$x = 1$ or $x = 6$"
+  ],
+  "correct_answer": "0",
+  "topic": "Mathematics",
+  "subtopic": "Quadratic Equations",
+  "subject_id": "uuid-of-mathematics",
+  "topic_id": "uuid-of-algebra",
+  "subtopic_id": "uuid-of-quadratic-equations",
+  "explanation_formatted": "To solve $x^2 + 5x + 6 = 0$, we factor: $(x + 2)(x + 3) = 0$. Therefore, $x = -2$ or $x = -3$. The other options don't satisfy the equation.",
+  "difficulty": "medium",
+  "has_image": true,
+  "image_description": "A graph of a parabola opening upwards.",
+  "image_bbox": [100, 200, 400, 800],
+  "image_page_number": 1
 }]
 
-IMPORTANT: 
-- "options" is an ARRAY of strings (not an object)
+IMPORTANT REQUIREMENTS:
+- Use "question_text_formatted", "options_formatted", and "explanation_formatted" fields
+- "options_formatted" is an ARRAY of Markdown strings (not an object)
 - "correct_answer" is the INDEX (0, 1, 2, 3, or 4) as a STRING
-- "explanation" is MANDATORY and must be detailed (minimum 20 words)
-- Include ALL options found (2-5 options)`;
+- "explanation_formatted" is MANDATORY and must be detailed (minimum 20 words) with Markdown/LaTeX
+- Include ALL options found (2-5 options)
+- Preserve ALL text formatting from the PDF using Markdown
+- Use LaTeX for ALL mathematical expressions, symbols, and formulas
+- Return ONLY the JSON array, no additional text`;
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -302,6 +370,23 @@ IMPORTANT:
         setIsProcessing(true);
         abortRef.current = false;
 
+        // Fetch taxonomy for context
+        setProgress({ step: 'preparing', detail: 'Fetching taxonomy data...' });
+        const { data: subjects } = await supabase.from('subjects' as any).select('id, name');
+        const { data: topics } = await supabase.from('topics' as any).select('id, subject_id, name');
+        const { data: subtopics } = await supabase.from('subtopics' as any).select('id, topic_id, name');
+
+        let taxonomyContext = "Available Taxonomy:\n";
+        (subjects || []).forEach((s: any) => {
+            taxonomyContext += `- Subject: ${s.name} (ID: ${s.id})\n`;
+            (topics || []).filter((t: any) => t.subject_id === s.id).forEach((t: any) => {
+                taxonomyContext += `  * Topic: ${t.name} (ID: ${t.id})\n`;
+                (subtopics || []).filter((st: any) => st.topic_id === t.id).forEach((st: any) => {
+                    taxonomyContext += `    - Subtopic: ${st.name} (ID: ${st.id})\n`;
+                });
+            });
+        });
+
         let totalQuestions = 0;
         let totalTokens = { total: 0, prompt: 0, completion: 0 };
 
@@ -328,42 +413,21 @@ IMPORTANT:
                 });
 
                 try {
-                    const { questions, tokens } = await extractFromChunk(chunk, geminiKey, file.name, model);
+                    const { questions, tokens } = await extractFromChunk(chunk, geminiKey, file.name, model, taxonomyContext);
 
                     totalTokens.total += tokens.total;
                     totalTokens.prompt += tokens.prompt;
                     totalTokens.completion += tokens.completion;
 
                     if (questions.length > 0) {
-                        // Extract images if any questions have images
-                        const questionsWithImages = questions.filter(q => q.has_image);
-                        let chunkImageUrls = new Map<number, string>();
+                        // Ensure storage bucket exists
+                        await ensureStorageBucket();
 
-                        if (questionsWithImages.length > 0) {
-                            setProgress({
-                                step: 'uploading',
-                                detail: `Extracting ${questionsWithImages.length} images...`,
-                                currentChunk: i + 1,
-                                totalChunks: chunks.length,
-                                tokens: totalTokens,
-                                questionsExtracted: totalQuestions,
-                            });
+                        const arrayBuffer = await chunk.blob.arrayBuffer();
 
-                            try {
-                                // Ensure storage bucket exists
-                                await ensureStorageBucket();
-
-                                // Extract all pages in this chunk as images
-                                chunkImageUrls = await extractChunkImages(
-                                    chunk.blob,
-                                    chunk.startPage,
-                                    chunk.endPage,
-                                    `question_${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`
-                                );
-                            } catch (imgErr) {
-                                console.warn('Image extraction failed:', imgErr);
-                            }
-                        }
+                        // Load PDF document once for this chunk to avoid "detached ArrayBuffer" errors
+                        await loadPdfJs();
+                        const pdfDoc = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
 
                         // Save to database
                         setProgress({
@@ -375,36 +439,114 @@ IMPORTANT:
                             questionsExtracted: totalQuestions,
                         });
 
-                        // For questions with images, assign the first available image URL
-                        // (Since we can't know exact page mapping, we use the chunk's image)
-                        const chunkImageUrl = chunkImageUrls.size > 0
-                            ? Array.from(chunkImageUrls.values())[0]
-                            : null;
+                        try {
+                            for (const q of questions) {
+                                // Perform regional image extraction if needed
+                                if (q.has_image && q.image_bbox && q.image_page_number) {
+                                    try {
+                                        const imageUrl = await extractRegionFromDoc(
+                                            pdfDoc,
+                                            q.image_page_number,
+                                            q.image_bbox,
+                                            `q_${Date.now()}`
+                                        );
+                                        if (imageUrl) {
+                                            q.image_url = imageUrl;
+                                        }
+                                    } catch (err) {
+                                        console.error('Failed to extract regional image:', err);
+                                    }
+                                }
 
-                        const questionsToInsert = questions.map(q => ({
-                            question_text: q.question_text,
-                            options: Array.isArray(q.options)
-                                ? q.options
-                                : [(q.options as any)?.A || '', (q.options as any)?.B || '', (q.options as any)?.C || '', (q.options as any)?.D || ''].filter(Boolean),
-                            correct_answer: q.correct_answer,
-                            topic: q.topic,
-                            subtopic: q.subtopic,
-                            difficulty: q.difficulty?.toLowerCase() || 'medium',
-                            explanation: q.explanation,
-                            has_image: q.has_image || false,
-                            image_description: q.image_description || null,
-                            image_url: q.has_image ? chunkImageUrl : null,
-                            is_verified: false,
-                        }));
+                                // Handle multiple images if present
+                                if (q.images && q.images.length > 0) {
+                                    for (const img of q.images) {
+                                        if (img.bbox && img.page_number) {
+                                            try {
+                                                const imageUrl = await extractRegionFromDoc(
+                                                    pdfDoc,
+                                                    img.page_number,
+                                                    img.bbox,
+                                                    `q_img_${Date.now()}`
+                                                );
+                                                if (imageUrl) {
+                                                    img.url = imageUrl;
+                                                }
+                                            } catch (err) {
+                                                console.error('Failed to extract extra regional image:', err);
+                                            }
+                                        }
+                                    }
+                                }
 
-                        const { error } = await supabase.from('questions').insert(questionsToInsert);
-                        if (!error) {
-                            totalQuestions += questions.length;
-                            // Notify UI to refresh immediately after each chunk
-                            onQuestionsExtracted?.();
-                        } else {
-                            console.error('Insert error:', error);
+                                const questionToInsert = {
+                                    // Plain text fields (backwards compatibility)
+                                    question_text: q.question_text_formatted || q.question_text,
+                                    options: q.options_formatted ||
+                                        (Array.isArray(q.options)
+                                            ? q.options
+                                            : [(q.options as any)?.A || '', (q.options as any)?.B || '', (q.options as any)?.C || '', (q.options as any)?.D || ''].filter(Boolean)),
+                                    explanation: q.explanation_formatted || q.explanation,
+
+                                    // Formatted text fields (Markdown + LaTeX)
+                                    question_text_formatted: q.question_text_formatted || q.question_text,
+                                    options_formatted: q.options_formatted ||
+                                        (Array.isArray(q.options)
+                                            ? q.options
+                                            : [(q.options as any)?.A || '', (q.options as any)?.B || '', (q.options as any)?.C || '', (q.options as any)?.D || ''].filter(Boolean)),
+                                    explanation_formatted: q.explanation_formatted || q.explanation,
+
+                                    // Metadata
+                                    correct_answer: q.correct_answer,
+                                    topic: q.topic,
+                                    subtopic: q.subtopic,
+                                    difficulty: q.difficulty?.toLowerCase() || 'medium',
+                                    has_image: q.has_image || false,
+                                    image_description: q.image_description || null,
+                                    image_url: q.image_url || null,
+                                    is_verified: false,
+
+                                    // Taxonomy
+                                    subject_id: q.subject_id || null,
+                                    topic_id: q.topic_id || null,
+                                    subtopic_id: q.subtopic_id || null,
+                                };
+
+                                const { data: questionData, error: questionError } = await supabase
+                                    .from('questions')
+                                    .insert(questionToInsert)
+                                    .select()
+                                    .single();
+
+                                if (!questionError && questionData) {
+                                    totalQuestions++;
+
+                                    // Insert extra images into question_images table if present
+                                    if (q.images && q.images.length > 0) {
+                                        const extraImages = q.images
+                                            .filter(img => img.url)
+                                            .map(img => ({
+                                                question_id: questionData.id,
+                                                image_url: img.url,
+                                                description: img.description || null,
+                                                image_order: img.order || 0
+                                            }));
+
+                                        if (extraImages.length > 0) {
+                                            await supabase.from('question_images' as any).insert(extraImages);
+                                        }
+                                    }
+                                } else {
+                                    console.error('Insert error:', questionError);
+                                }
+                            }
+                        } finally {
+                            // Free up memory
+                            await pdfDoc.destroy();
                         }
+
+                        // Notify UI to refresh immediately after each chunk
+                        onQuestionsExtracted?.();
                     }
                 } catch (chunkError: any) {
                     console.warn(`Chunk ${i + 1} failed:`, chunkError);
