@@ -196,6 +196,18 @@ export default function AdminDashboard() {
                                 <p className="text-sm text-slate-500">Create and manage mock & live exams</p>
                             </div>
                         </a>
+                        <a
+                            href="/admin/point-config"
+                            className="flex items-center gap-4 p-4 rounded-xl bg-purple-50 hover:bg-purple-100 transition-colors group"
+                        >
+                            <div className="bg-purple-600 p-3 rounded-lg group-hover:scale-105 transition-transform">
+                                <Settings className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-slate-900">Points Configuration</h3>
+                                <p className="text-sm text-slate-500">Configure VP values and streaks</p>
+                            </div>
+                        </a>
                     </CardContent>
                 </Card>
 
