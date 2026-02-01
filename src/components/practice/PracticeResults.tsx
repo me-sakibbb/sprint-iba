@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,8 @@ import {
     Brain,
     Target,
     Clock,
-    Sparkles
+    Sparkles,
+    Zap
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { MarkdownText } from "@/components/MarkdownText";
@@ -29,17 +30,45 @@ interface PracticeResultsProps {
     questions: Question[];
     answers: Record<string, string>;
     onRetry: () => void;
+    vpEarned: number;
 }
 
 export default function PracticeResults({
     session,
     questions,
     answers,
-    onRetry
+    onRetry,
+    ...props
 }: PracticeResultsProps) {
     const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
 
-    const correctCount = questions.filter(q => q.correct_answer === answers[q.id]).length;
+    // Helper to check if an answer is correct (handling indices, labels, and text)
+    const checkIsCorrect = useCallback((q: Question, answerLabel: string) => {
+        if (!q.correct_answer || !answerLabel) return false;
+        const correct = String(q.correct_answer).trim().toLowerCase();
+        const userLabel = String(answerLabel).trim().toLowerCase();
+
+        const options = q.options || [];
+        const labels = ['A', 'B', 'C', 'D', 'E'];
+        const userIndex = labels.findIndex(l => l.toLowerCase() === userLabel);
+
+        // 1. Direct Label Match (e.g. "A" === "a")
+        if (userLabel === correct) return true;
+
+        // 2. Index Match & Text Match
+        if (userIndex !== -1) {
+            // Check indices (0 based only)
+            if (String(userIndex) === correct) return true;
+
+            // Check Option Text
+            const userText = options[userIndex];
+            if (userText && String(userText).trim().toLowerCase() === correct) return true;
+        }
+
+        return false;
+    }, []);
+
+    const correctCount = questions.filter(q => checkIsCorrect(q, answers[q.id] || '')).length;
     const percentage = Math.round((correctCount / questions.length) * 100);
 
     const toggleQuestion = (id: string) => {
@@ -91,7 +120,12 @@ export default function PracticeResults({
                 </div>
 
                 <CardContent className="p-6">
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-4 gap-4">
+                        <div className="text-center p-4 rounded-xl bg-orange-500/10">
+                            <Zap className="w-6 h-6 mx-auto mb-2 text-orange-500 fill-orange-500" />
+                            <div className="text-2xl font-bold text-orange-500">{props.vpEarned > 0 ? '+' : ''}{props.vpEarned}</div>
+                            <div className="text-sm text-muted-foreground">VP Earned</div>
+                        </div>
                         <div className="text-center p-4 rounded-xl bg-muted/50">
                             <Target className="w-6 h-6 mx-auto mb-2 text-primary" />
                             <div className="text-2xl font-bold">{questions.length}</div>
@@ -188,7 +222,7 @@ export default function PracticeResults({
                                                         {(question.options || []).map((option, optIndex) => {
                                                             const label = ['A', 'B', 'C', 'D', 'E'][optIndex];
                                                             const isUserAnswer = userAnswer === label;
-                                                            const isCorrectAnswer = question.correct_answer === label;
+                                                            const isCorrectAnswer = checkIsCorrect(question, label);
 
                                                             return (
                                                                 <div

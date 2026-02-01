@@ -25,7 +25,9 @@ import {
     Loader2,
     Brain,
     Sparkles,
-    AlertCircle
+    AlertCircle,
+    Eye,
+    EyeOff
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import PracticeSession from "@/components/practice/PracticeSession";
@@ -50,7 +52,8 @@ export default function PracticePage() {
         completeSession,
         resetSession,
         timeRemaining,
-        setTimeRemaining
+        setTimeRemaining,
+        totalVpEarned
     } = usePractice();
 
     const searchParams = useSearchParams();
@@ -61,6 +64,7 @@ export default function PracticePage() {
     const [timePerQuestion, setTimePerQuestion] = useState(60);
     const [questionCount, setQuestionCount] = useState(10);
     const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+    const [feedbackMode, setFeedbackMode] = useState<'immediate' | 'deferred'>('immediate');
 
     useEffect(() => {
         const modeParam = searchParams.get('mode');
@@ -107,6 +111,7 @@ export default function PracticePage() {
             subjects: selectedTopics.length === 0 ? ['Overall'] : selectedTopics,
             questionCount,
             practiceMode: practiceType,
+            feedbackMode,
         });
     };
 
@@ -128,6 +133,7 @@ export default function PracticePage() {
                 }}
                 setTimeRemaining={setTimeRemaining}
                 timePerQuestion={timePerQuestion}
+                feedbackMode={feedbackMode}
             />
         );
     }
@@ -140,6 +146,7 @@ export default function PracticePage() {
                 questions={questions}
                 answers={answers}
                 onRetry={resetSession}
+                vpEarned={totalVpEarned}
             />
         );
     }
@@ -277,6 +284,53 @@ export default function PracticePage() {
                                 />
                             </div>
                         )}
+                    </CardContent>
+                </Card>
+
+                {/* Feedback Mode Selection */}
+                <Card className="border-border/40">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <Eye className="w-5 h-5 text-primary" />
+                            Feedback Mode
+                        </CardTitle>
+                        <CardDescription>Choose when to see answers</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <RadioGroup
+                            value={feedbackMode}
+                            onValueChange={(v) => setFeedbackMode(v as 'immediate' | 'deferred')}
+                            className="grid grid-cols-2 gap-4"
+                        >
+                            <Label
+                                htmlFor="immediate"
+                                className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${feedbackMode === 'immediate'
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:border-primary/50'
+                                    }`}
+                            >
+                                <RadioGroupItem value="immediate" id="immediate" className="sr-only" />
+                                <Eye className="w-8 h-8 text-primary" />
+                                <div className="text-center">
+                                    <div className="font-semibold">Immediate</div>
+                                    <div className="text-sm text-muted-foreground">See answers as you go</div>
+                                </div>
+                            </Label>
+                            <Label
+                                htmlFor="deferred"
+                                className={`flex flex-col items-center gap-3 p-6 rounded-xl border-2 cursor-pointer transition-all ${feedbackMode === 'deferred'
+                                    ? 'border-primary bg-primary/5'
+                                    : 'border-border hover:border-primary/50'
+                                    }`}
+                            >
+                                <RadioGroupItem value="deferred" id="deferred" className="sr-only" />
+                                <EyeOff className="w-8 h-8 text-primary" />
+                                <div className="text-center">
+                                    <div className="font-semibold">Deferred</div>
+                                    <div className="text-sm text-muted-foreground">See results at the end</div>
+                                </div>
+                            </Label>
+                        </RadioGroup>
                     </CardContent>
                 </Card>
 
