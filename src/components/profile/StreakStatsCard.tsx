@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Zap, TrendingUp, Target, Award } from 'lucide-react';
 import { usePoints } from '@/hooks/usePoints';
-import { Skeleton } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function StreakStatsCard() {
     const { loginStreak, practiceStreak, streakMultiplier, loading } = usePoints();

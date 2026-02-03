@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePractice } from "@/hooks/usePractice";
@@ -33,7 +33,7 @@ import { useSearchParams } from "next/navigation";
 import PracticeSession from "@/components/practice/PracticeSession";
 import PracticeResults from "@/components/practice/PracticeResults";
 
-export default function PracticePage() {
+function PracticeContent() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const {
@@ -450,5 +450,17 @@ export default function PracticePage() {
                 </Button>
             </div>
         </div>
+    );
+}
+
+export default function PracticePage() {
+    return (
+        <Suspense fallback={
+            <div className="flex justify-center items-center min-h-screen">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        }>
+            <PracticeContent />
+        </Suspense>
     );
 }
