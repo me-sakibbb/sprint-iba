@@ -1,3 +1,5 @@
+"use client";
+
 // ============================================
 // usePoints Hook (Enhanced from useVelocityPoints)
 // Manages points, levels, and streaks with real-time updates
@@ -6,16 +8,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { calculateLevel, getLevelById, type LevelDefinition } from '@/config/levels';
+import { type LevelDefinition } from '@/config/levels';
 import { toast } from 'sonner';
 import {
-    calculateAnswerPoints,
-    calculateSessionBonus,
-    calculateStreakMultiplier,
     applyMultiplier,
     ensureNonNegative,
 } from '@/utils/pointCalculations';
-import { getUserStreak, updateLoginStreak, getStreakStats } from '@/services/streakService';
+import { updateLoginStreak, getStreakStats } from '@/services/streakService';
 
 export interface PointsData {
     totalVp: number;
@@ -46,11 +45,26 @@ export interface AwardPointsParams {
     applyStreakMultiplier?: boolean;
 }
 
+// Default fallback level if DB is empty
+const DEFAULT_LEVEL: LevelDefinition = {
+    id: 1,
+    name: 'Rookie',
+    description: 'Welcome to the start.',
+    vpThreshold: 0,
+    track: 'WARM_UP',
+    trackColor: '#3b82f6',
+    badgeImageUrl: '',
+    color: '#3b82f6'
+};
+
 export function usePoints() {
     const { user } = useAuth();
+    const [levelsData, setLevelsData] = useState<LevelDefinition[]>([]);
+    const [levelsLoading, setLevelsLoading] = useState(true);
+
     const [data, setData] = useState<PointsData>({
         totalVp: 0,
-        currentLevel: getLevelById(1)!,
+        currentLevel: DEFAULT_LEVEL,
         loading: true,
         error: null,
         loginStreak: 0,
@@ -61,12 +75,60 @@ export function usePoints() {
     const [showLevelUpAnimation, setShowLevelUpAnimation] = useState(false);
     const [levelUpData, setLevelUpData] = useState<LevelDefinition | null>(null);
 
+    // Fetch Level Definitions from DB
+    useEffect(() => {
+        const fetchLevelDefinitions = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('levels')
+                    .select('*')
+                    .order('rank', { ascending: true });
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    const mappedLevels: LevelDefinition[] = data.map(l => ({
+                        id: l.rank || 0, // treating rank as ID for compatibility
+                        name: l.name,
+                        description: l.description || '',
+                        vpThreshold: l.min_points,
+                        track: 'CUSTOM' as any,
+                        trackColor: l.color || '#3b82f6',
+                        badgeImageUrl: l.icon_url || '',
+                        color: l.color || '#3b82f6'
+                    }));
+                    setLevelsData(mappedLevels);
+                }
+            } catch (err) {
+                console.error("Failed to fetch level definitions:", err);
+            } finally {
+                setLevelsLoading(false);
+            }
+        };
+        fetchLevelDefinitions();
+    }, []);
+
+    const getLevelByRank = useCallback((rank: number) => {
+        return levelsData.find(l => l.id === rank) || levelsData[0] || DEFAULT_LEVEL;
+    }, [levelsData]);
+
+    const calculateCurrentLevel = useCallback((vp: number) => {
+        if (!levelsData.length) return DEFAULT_LEVEL;
+        // Iterate reverse to find highest threshold met
+        for (let i = levelsData.length - 1; i >= 0; i--) {
+            if (vp >= levelsData[i].vpThreshold) {
+                return levelsData[i];
+            }
+        }
+        return levelsData[0];
+    }, [levelsData]);
+
     /**
      * Fetch user's VP, level, and streak data
      */
     const fetchPoints = useCallback(async () => {
-        if (!user) {
-            setData((prev) => ({ ...prev, loading: false }));
+        if (!user || levelsLoading) {
+            if (!user) setData((prev) => ({ ...prev, loading: false }));
             return;
         }
 
@@ -85,13 +147,14 @@ export function usePoints() {
             // Create level record if doesn't exist
             let totalVp = 0;
             let currentLevelId = 1;
+            let currentLevel = levelsData[0] || DEFAULT_LEVEL;
 
             if (!userLevelData) {
                 const { error: insertError } = await supabase
                     .from('user_levels' as any)
                     .insert({
                         user_id: user.id,
-                        current_level: 1,
+                        current_level: currentLevel.id,
                         total_vp: 0,
                     });
 
@@ -99,12 +162,19 @@ export function usePoints() {
             } else {
                 totalVp = (userLevelData as any).total_vp || 0;
                 currentLevelId = (userLevelData as any).current_level || 1;
+
+                // Self-healing / Verification
+                const calculatedLevel = calculateCurrentLevel(totalVp);
+                if (calculatedLevel.id !== currentLevelId) {
+                    // We prefer the calculated level based on points
+                    currentLevel = calculatedLevel;
+                } else {
+                    currentLevel = getLevelByRank(currentLevelId);
+                }
             }
 
             // Fetch streak data
             const streakStats = await getStreakStats(user.id);
-
-            const currentLevel = getLevelById(currentLevelId) || getLevelById(1)!;
 
             setData({
                 totalVp,
@@ -123,7 +193,7 @@ export function usePoints() {
                 error: error as Error,
             }));
         }
-    }, [user]);
+    }, [user, levelsLoading, levelsData, calculateCurrentLevel, getLevelByRank]);
 
     /**
      * Award points to user with optional streak multiplier
@@ -181,7 +251,7 @@ export function usePoints() {
 
                 // Update user's total VP and check for level up
                 const newTotalVp = Math.max(0, data.totalVp + finalAmount);
-                const newLevel = calculateLevel(newTotalVp);
+                const newLevel = calculateCurrentLevel(newTotalVp);
                 const leveledUp = newLevel.id > data.currentLevel.id;
 
                 const { error: updateError } = await supabase
@@ -228,7 +298,7 @@ export function usePoints() {
                 return false;
             }
         },
-        [user, data.totalVp, data.currentLevel, data.streakMultiplier, fetchPoints]
+        [user, data.totalVp, data.currentLevel, data.streakMultiplier, fetchPoints, calculateCurrentLevel]
     );
 
     /**
@@ -243,6 +313,7 @@ export function usePoints() {
                 toast.success(`Daily login streak! +${result.vpAwarded} VP`, {
                     description: `${result.streakCount} day streak`,
                     duration: 3000,
+                    // icon: '🔥'
                 });
                 fetchPoints();
             }
@@ -301,8 +372,10 @@ export function usePoints() {
      * Initial fetch
      */
     useEffect(() => {
-        fetchPoints();
-    }, [fetchPoints]);
+        if (!levelsLoading) {
+            fetchPoints();
+        }
+    }, [fetchPoints, levelsLoading]);
 
     const closeLevelUpAnimation = useCallback(() => {
         setShowLevelUpAnimation(false);

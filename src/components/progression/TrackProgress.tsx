@@ -22,7 +22,13 @@ export default function TrackProgress({ totalVp, currentLevel, className }: Trac
         ? calculateProgressToNextLevel(totalVp, currentLevel.id)
         : 100;
     const vpRemaining = nextLevel ? getVpUntilNextLevel(totalVp, currentLevel.id) : 0;
-    const trackTheme = TRACK_THEMES[currentLevel.track];
+    const trackTheme = TRACK_THEMES[currentLevel.track] || {
+        primary: currentLevel.color || '#3b82f6',
+        secondary: currentLevel.color || '#3b82f6',
+        accent: currentLevel.color || '#3b82f6',
+        gradient: `linear-gradient(135deg, ${currentLevel.color || '#3b82f6'} 0%, ${currentLevel.color || '#3b82f6'} 100%)`,
+        name: currentLevel.name
+    };
 
     return (
         <Card className={className}>

@@ -18,7 +18,13 @@ interface LevelUpAnimationProps {
 
 export default function LevelUpAnimation({ level, open, onClose }: LevelUpAnimationProps) {
     const [showConfetti, setShowConfetti] = useState(false);
-    const trackTheme = TRACK_THEMES[level.track];
+    const trackTheme = TRACK_THEMES[level.track] || {
+        primary: level.color || '#3b82f6',
+        secondary: level.color || '#3b82f6',
+        accent: level.color || '#3b82f6',
+        gradient: level.color ? `linear-gradient(135deg, ${level.color} 0%, ${level.color} 100%)` : 'linear-gradient(135deg, #3b82f6 0%, #3b82f6 100%)',
+        name: level.name
+    };
 
     useEffect(() => {
         if (open) {
@@ -115,7 +121,7 @@ export default function LevelUpAnimation({ level, open, onClose }: LevelUpAnimat
                         >
                             <span className="flex items-center gap-2">
                                 <Zap className="w-4 h-4" />
-                                {TRACK_THEMES[level.track].name}
+                                {TRACK_THEMES[level.track] ? TRACK_THEMES[level.track].name : level.name}
                             </span>
                         </div>
 

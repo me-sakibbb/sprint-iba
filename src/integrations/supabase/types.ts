@@ -62,6 +62,42 @@ export type Database = {
         }
         Relationships: []
       }
+      levels: {
+        Row: {
+          id: string
+          name: string
+          min_points: number
+          icon_url: string | null
+          description: string | null
+          created_at: string
+          updated_at: string
+          color: string | null
+          rank: number | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          min_points?: number
+          icon_url?: string | null
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+          color?: string | null
+          rank?: number | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          min_points?: number
+          icon_url?: string | null
+          description?: string | null
+          created_at?: string
+          updated_at?: string
+          color?: string | null
+          rank?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
