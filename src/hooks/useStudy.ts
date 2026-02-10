@@ -23,13 +23,13 @@ export interface StudyProgressMap {
 }
 
 // ─── Fetch all published study topics in tree structure ─────────────
-export function useStudyTopics() {
-    const [topics, setTopics] = useState<StudyTopicWithChildren[]>([]);
-    const [loading, setLoading] = useState(true);
+import { useQuery } from '@tanstack/react-query';
 
-    const fetchTopics = useCallback(async () => {
-        setLoading(true);
-        try {
+// ─── Fetch all published study topics in tree structure ─────────────
+export function useStudyTopics() {
+    const { data: topics = [], isLoading: loading, refetch, error } = useQuery({
+        queryKey: ['study-topics'],
+        queryFn: async () => {
             const { data, error } = await supabase
                 .from('study_topics')
                 .select('*')
@@ -102,32 +102,22 @@ export function useStudyTopics() {
                 }
             }
 
-            setTopics(roots);
-        } catch (error: any) {
-            console.error('Error fetching study topics:', error);
-            toast.error('Failed to load study topics');
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+            return roots;
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes fresh
+    });
 
-    useEffect(() => {
-        fetchTopics();
-    }, [fetchTopics]);
-
-    return { topics, loading, refetch: fetchTopics };
+    return { topics, loading, refetch, error };
 }
 
 // ─── Fetch a single study topic by slug with its materials ─────────
+// ─── Fetch a single study topic by slug with its materials ─────────
 export function useStudyTopic(slug: string) {
-    const [topic, setTopic] = useState<StudyTopicWithMaterials | null>(null);
-    const [subtopics, setSubtopics] = useState<StudyTopic[]>([]);
-    const [loading, setLoading] = useState(true);
+    const { data, isLoading: loading, refetch, error } = useQuery({
+        queryKey: ['study-topic', slug],
+        queryFn: async () => {
+            if (!slug) return { topic: null, subtopics: [] };
 
-    const fetchTopic = useCallback(async () => {
-        if (!slug) return;
-        setLoading(true);
-        try {
             // Fetch the topic
             const { data: topicData, error: topicError } = await supabase
                 .from('study_topics')
@@ -138,43 +128,45 @@ export function useStudyTopic(slug: string) {
 
             if (topicError) throw topicError;
 
-            // Fetch materials for this topic
-            const { data: materialsData, error: materialsError } = await supabase
-                .from('study_materials')
-                .select('*')
-                .eq('study_topic_id', topicData.id)
-                .eq('is_published', true)
-                .order('sort_order', { ascending: true });
+            // Parallel fetch: materials and subtopics
+            const [materialsResult, childrenResult] = await Promise.all([
+                supabase
+                    .from('study_materials')
+                    .select('*')
+                    .eq('study_topic_id', topicData.id)
+                    .eq('is_published', true)
+                    .order('sort_order', { ascending: true }),
+                supabase
+                    .from('study_topics')
+                    .select('*')
+                    .eq('parent_id', topicData.id)
+                    .eq('is_published', true)
+                    .order('sort_order', { ascending: true })
+            ]);
 
-            if (materialsError) throw materialsError;
+            if (materialsResult.error) throw materialsResult.error;
 
-            setTopic({
+            const topicWithMaterials: StudyTopicWithMaterials = {
                 ...topicData,
-                materials: materialsData || [],
-            });
+                materials: materialsResult.data || [],
+            };
 
-            // Fetch subtopics (children)
-            const { data: childrenData } = await supabase
-                .from('study_topics')
-                .select('*')
-                .eq('parent_id', topicData.id)
-                .eq('is_published', true)
-                .order('sort_order', { ascending: true });
+            return {
+                topic: topicWithMaterials,
+                subtopics: childrenResult.data || []
+            };
+        },
+        enabled: !!slug,
+        staleTime: 1000 * 60 * 5, // 5 minutes
+    });
 
-            setSubtopics(childrenData || []);
-        } catch (error: any) {
-            console.error('Error fetching study topic:', error);
-            toast.error('Failed to load study topic');
-        } finally {
-            setLoading(false);
-        }
-    }, [slug]);
-
-    useEffect(() => {
-        fetchTopic();
-    }, [fetchTopic]);
-
-    return { topic, subtopics, loading, refetch: fetchTopic };
+    return {
+        topic: data?.topic || null,
+        subtopics: data?.subtopics || [],
+        loading,
+        refetch,
+        error
+    };
 }
 
 // ─── User progress tracking ────────────────────────────────────────

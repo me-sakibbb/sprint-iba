@@ -377,19 +377,25 @@ IMPORTANT REQUIREMENTS:
         setIsProcessing(true);
         abortRef.current = false;
 
-        // Fetch taxonomy for context
+        // Fetch taxonomy from study_topics for context
         setProgress({ step: 'preparing', detail: 'Fetching taxonomy data...' });
-        const { data: subjects } = await supabase.from('subjects' as any).select('id, name');
-        const { data: topics } = await supabase.from('topics' as any).select('id, subject_id, name');
-        const { data: subtopics } = await supabase.from('subtopics' as any).select('id, topic_id, name');
+        const { data: allStudyTopics } = await supabase
+            .from('study_topics')
+            .select('id, title, parent_id')
+            .order('sort_order', { ascending: true })
+            .order('title', { ascending: true });
+
+        const subjects = (allStudyTopics || []).filter((t: any) => !t.parent_id);
+        const topics = (allStudyTopics || []).filter((t: any) => subjects.some((s: any) => s.id === t.parent_id));
+        const subtopics = (allStudyTopics || []).filter((t: any) => topics.some((top: any) => top.id === t.parent_id));
 
         let taxonomyContext = "Available Taxonomy:\n";
-        (subjects || []).forEach((s: any) => {
-            taxonomyContext += `- Subject: ${s.name} (ID: ${s.id})\n`;
-            (topics || []).filter((t: any) => t.subject_id === s.id).forEach((t: any) => {
-                taxonomyContext += `  * Topic: ${t.name} (ID: ${t.id})\n`;
-                (subtopics || []).filter((st: any) => st.topic_id === t.id).forEach((st: any) => {
-                    taxonomyContext += `    - Subtopic: ${st.name} (ID: ${st.id})\n`;
+        subjects.forEach((s: any) => {
+            taxonomyContext += `- Subject: ${s.title} (ID: ${s.id})\n`;
+            topics.filter((t: any) => t.parent_id === s.id).forEach((t: any) => {
+                taxonomyContext += `  * Topic: ${t.title} (ID: ${t.id})\n`;
+                subtopics.filter((st: any) => st.parent_id === t.id).forEach((st: any) => {
+                    taxonomyContext += `    - Subtopic: ${st.title} (ID: ${st.id})\n`;
                 });
             });
         });

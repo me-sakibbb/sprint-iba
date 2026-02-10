@@ -7,7 +7,8 @@ import {
     BreadcrumbLink,
     BreadcrumbList,
     BreadcrumbPage,
-    BreadcrumbSeparator
+    BreadcrumbSeparator,
+    BreadcrumbEllipsis
 } from "@/components/ui/breadcrumb";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -54,41 +55,100 @@ const Header = () => {
     // Use the max streak for display
     const displayStreak = Math.max(loginStreak, practiceStreak);
 
+    const isStudySubPage = pathSegments[0] === 'my-study' && pathSegments.length > 1;
+
     return (
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
+            <div className="flex items-center gap-2 px-2 overflow-hidden flex-initial max-w-[40%]">
                 <SidebarTrigger className="-ml-1" />
                 <Separator orientation="vertical" className="mr-2 h-4" />
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem className="hidden md:block">
-                            <BreadcrumbLink href="/dashboard">Sprint IBA</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        {pathSegments.map((segment, index) => {
-                            const href = `/${pathSegments.slice(0, index + 1).join('/')}`;
-                            const isLast = index === pathSegments.length - 1;
-                            const title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+                {!isStudySubPage && (
+                    <Breadcrumb className="overflow-hidden">
+                        <BreadcrumbList className="flex-nowrap whitespace-nowrap overflow-hidden">
+                            <BreadcrumbItem className="hidden lg:block shrink-0">
+                                <BreadcrumbLink href="/dashboard" className="transition-all hover:opacity-70">
+                                    Sprint IBA
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
 
-                            return (
-                                <div key={href} className="flex items-center">
-                                    <BreadcrumbSeparator className="hidden md:block" />
-                                    <BreadcrumbItem>
-                                        {isLast ? (
-                                            <BreadcrumbPage>{title}</BreadcrumbPage>
-                                        ) : (
-                                            <BreadcrumbLink href={href}>{title}</BreadcrumbLink>
-                                        )}
-                                    </BreadcrumbItem>
-                                </div>
-                            );
-                        })}
-                    </BreadcrumbList>
-                </Breadcrumb>
+                            {(() => {
+                                const maxVisible = 3;
+                                if (pathSegments.length <= maxVisible) {
+                                    return pathSegments.map((segment, index) => {
+                                        const href = `/${pathSegments.slice(0, index + 1).join('/')}`;
+                                        const isLast = index === pathSegments.length - 1;
+                                        const title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+                                        const truncatedTitle = title.length > 15 ? title.substring(0, 12) + '...' : title;
+
+                                        return (
+                                            <div key={href} className="flex items-center overflow-hidden shrink-0">
+                                                <BreadcrumbSeparator className="hidden md:block" />
+                                                <BreadcrumbItem className="overflow-hidden">
+                                                    {isLast ? (
+                                                        <BreadcrumbPage className="font-bold truncate max-w-[120px]" title={title}>{truncatedTitle}</BreadcrumbPage>
+                                                    ) : (
+                                                        <BreadcrumbLink href={href} className="truncate max-w-[100px]" title={title}>{truncatedTitle}</BreadcrumbLink>
+                                                    )}
+                                                </BreadcrumbItem>
+                                            </div>
+                                        );
+                                    });
+                                }
+
+                                // Collapsed version
+                                const first = pathSegments[0];
+                                const lastTwo = pathSegments.slice(-2);
+
+                                return (
+                                    <>
+                                        {/* First Segment */}
+                                        <div className="flex items-center shrink-0">
+                                            <BreadcrumbSeparator className="hidden md:block" />
+                                            <BreadcrumbItem>
+                                                <BreadcrumbLink href={`/${first}`}>{first.charAt(0).toUpperCase() + first.slice(1).replace(/-/g, ' ')}</BreadcrumbLink>
+                                            </BreadcrumbItem>
+                                        </div>
+
+                                        {/* Ellipsis */}
+                                        <div className="flex items-center shrink-0">
+                                            <BreadcrumbSeparator className="hidden md:block" />
+                                            <BreadcrumbItem>
+                                                <BreadcrumbEllipsis />
+                                            </BreadcrumbItem>
+                                        </div>
+
+                                        {/* Last Two */}
+                                        {lastTwo.map((segment, index) => {
+                                            const actualIndex = pathSegments.length - 2 + index;
+                                            const href = `/${pathSegments.slice(0, actualIndex + 1).join('/')}`;
+                                            const isLast = index === 1;
+                                            const title = segment.charAt(0).toUpperCase() + segment.slice(1).replace(/-/g, ' ');
+                                            const truncatedTitle = title.length > 12 ? title.substring(0, 10) + '...' : title;
+
+                                            return (
+                                                <div key={href} className="flex items-center overflow-hidden shrink-0">
+                                                    <BreadcrumbSeparator className="hidden md:block" />
+                                                    <BreadcrumbItem className="overflow-hidden">
+                                                        {isLast ? (
+                                                            <BreadcrumbPage className="font-bold truncate max-w-[100px]" title={title}>{truncatedTitle}</BreadcrumbPage>
+                                                        ) : (
+                                                            <BreadcrumbLink href={href} className="truncate max-w-[80px]" title={title}>{truncatedTitle}</BreadcrumbLink>
+                                                        )}
+                                                    </BreadcrumbItem>
+                                                </div>
+                                            );
+                                        })}
+                                    </>
+                                );
+                            })()}
+                        </BreadcrumbList>
+                    </Breadcrumb>
+                )}
             </div>
 
-            {/* Center Search */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block w-full max-w-md px-4">
-                <div className="relative">
+            {/* Center Search - Refactored to not use absolute positioning */}
+            <div className="flex-1 hidden md:flex justify-center px-4 overflow-hidden">
+                <div className="relative w-full max-w-md">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"

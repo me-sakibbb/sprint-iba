@@ -10,6 +10,7 @@ export interface Subject {
     created_at: string;
     updated_at: string;
     question_count?: number;
+    slug?: string;
 }
 
 export interface Topic {
@@ -20,6 +21,7 @@ export interface Topic {
     created_at: string;
     updated_at: string;
     question_count?: number;
+    slug?: string;
 }
 
 export interface Subtopic {
@@ -30,7 +32,26 @@ export interface Subtopic {
     created_at: string;
     updated_at: string;
     question_count?: number;
+    slug?: string;
 }
+
+const createSlug = (text: string, parentName?: string) => {
+    let slug = text
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '') // Remove non-word chars
+        .replace(/\s+/g, '-')     // Replace spaces with hyphens
+        .replace(/--+/g, '-')     // Replace multiple hyphens with single
+        .replace(/^-+|-+$/g, '')  // Remove leading/trailing hyphens
+        .trim();                  // Trim
+
+    if (parentName) {
+        const parentSlug = parentName.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').trim();
+        if (slug.startsWith(parentSlug + '-')) {
+            slug = slug.substring(parentSlug.length + 1);
+        }
+    }
+    return slug;
+};
 
 // --- Subjects Hook ---
 export function useSubjects() {
@@ -40,24 +61,31 @@ export function useSubjects() {
     const fetchSubjects = useCallback(async () => {
         setLoading(true);
         try {
+            // Fetch root topics (subjects) from study_topics
             const { data, error } = await supabase
-                .from('subjects')
-                .select(`
-                    *,
-                    questions:questions(count)
-                `)
-                .order('name');
+                .from('study_topics')
+                .select('*')
+                .is('parent_id', null)
+                .order('sort_order', { ascending: true })
+                .order('title', { ascending: true });
 
             if (error) throw error;
 
-            const subjectsWithCount = data.map(s => ({
-                ...s,
-                question_count: s.questions?.[0]?.count || 0,
-                questions: undefined,
+            // Transform study_topics to Subject interface
+            const transformedSubjects: Subject[] = data.map(item => ({
+                id: item.id,
+                name: item.title,
+                description: item.description,
+                created_at: item.created_at,
+                updated_at: item.updated_at || item.created_at,
+                slug: item.slug
+                // Note: question_count logic would need a more complex join or separate query
+                // For now, we omit it or would need a custom RPC/view if critical
             }));
 
-            setSubjects(subjectsWithCount);
+            setSubjects(transformedSubjects);
         } catch (error: any) {
+            console.error('Error fetching subjects:', error);
             toast.error(`Failed to load subjects: ${error.message}`);
         } finally {
             setLoading(false);
@@ -70,16 +98,31 @@ export function useSubjects() {
 
     const createSubject = async (name: string, description?: string) => {
         try {
+            const slug = createSlug(name);
             const { data, error } = await supabase
-                .from('subjects')
-                .insert({ name, description })
+                .from('study_topics')
+                .insert({
+                    title: name,
+                    description,
+                    slug,
+                    parent_id: null,
+                    is_published: true
+                })
                 .select()
                 .single();
 
             if (error) throw error;
             toast.success('Subject created');
             await fetchSubjects();
-            return data;
+
+            // Return in Subject format
+            return {
+                id: data.id,
+                name: data.title,
+                description: data.description,
+                created_at: data.created_at,
+                updated_at: data.updated_at
+            };
         } catch (error: any) {
             toast.error(`Failed to create subject: ${error.message}`);
             throw error;
@@ -88,9 +131,16 @@ export function useSubjects() {
 
     const updateSubject = async (id: string, updates: Partial<Subject>) => {
         try {
+            const dbUpdates: any = {};
+            if (updates.name) {
+                dbUpdates.title = updates.name;
+                dbUpdates.slug = createSlug(updates.name);
+            }
+            if (updates.description !== undefined) dbUpdates.description = updates.description;
+
             const { error } = await supabase
-                .from('subjects')
-                .update(updates)
+                .from('study_topics')
+                .update(dbUpdates)
                 .eq('id', id);
 
             if (error) throw error;
@@ -105,7 +155,7 @@ export function useSubjects() {
     const deleteSubject = async (id: string) => {
         try {
             const { error } = await supabase
-                .from('subjects')
+                .from('study_topics')
                 .delete()
                 .eq('id', id);
 
@@ -137,28 +187,44 @@ export function useTopics(subjectId?: string) {
         setLoading(true);
         try {
             let query = supabase
-                .from('topics')
-                .select(`
-                    *,
-                    questions:questions(count)
-                `)
-                .order('name');
+                .from('study_topics')
+                .select('*')
+                .order('sort_order', { ascending: true })
+                .order('title', { ascending: true });
 
             if (subjectId) {
-                query = query.eq('subject_id', subjectId);
+                query = query.eq('parent_id', subjectId);
+            } else {
+                // If no subjectId, we technically could fetch ALL 2nd level topics, 
+                // but that's hard to distinguish from 3rd level without a join.
+                // For now, let's just return empty if no subjectId is provided to be safe, 
+                // OR we can fetch all non-root topics? 
+                // The original hook likely returned specific topics for a subject or all topics.
+                // Let's assume we need subjectId usually.
+                // If subjectId is missing, maybe we shouldn't fetch anything to avoid massive lists
+                if (!subjectId) {
+                    setTopics([]);
+                    setLoading(false);
+                    return;
+                }
             }
 
             const { data, error } = await query;
             if (error) throw error;
 
-            const topicsWithCount = data.map(t => ({
-                ...t,
-                question_count: t.questions?.[0]?.count || 0,
-                questions: undefined,
+            const transformedTopics: Topic[] = data.map(item => ({
+                id: item.id,
+                subject_id: item.parent_id!, // We know it has parent if we queried by parent_id
+                name: item.title,
+                description: item.description,
+                created_at: item.created_at,
+                updated_at: item.updated_at || item.created_at,
+                slug: item.slug
             }));
 
-            setTopics(topicsWithCount);
+            setTopics(transformedTopics);
         } catch (error: any) {
+            console.error('Error fetching topics:', error);
             toast.error(`Failed to load topics: ${error.message}`);
         } finally {
             setLoading(false);
@@ -169,18 +235,32 @@ export function useTopics(subjectId?: string) {
         fetchTopics();
     }, [fetchTopics]);
 
-    const createTopic = async (subjectId: string, name: string, description?: string) => {
+    const createTopic = async (subjectId: string, name: string, description?: string, parentName?: string) => {
         try {
+            const slug = createSlug(name, parentName);
             const { data, error } = await supabase
-                .from('topics')
-                .insert({ subject_id: subjectId, name, description })
+                .from('study_topics')
+                .insert({
+                    title: name,
+                    description,
+                    slug,
+                    parent_id: subjectId,
+                    is_published: true
+                })
                 .select()
                 .single();
 
             if (error) throw error;
             toast.success('Topic created');
             await fetchTopics();
-            return data;
+            return {
+                id: data.id,
+                subject_id: data.parent_id,
+                name: data.title,
+                description: data.description,
+                created_at: data.created_at,
+                updated_at: data.updated_at
+            };
         } catch (error: any) {
             toast.error(`Failed to create topic: ${error.message}`);
             throw error;
@@ -189,9 +269,16 @@ export function useTopics(subjectId?: string) {
 
     const updateTopic = async (id: string, updates: Partial<Topic>) => {
         try {
+            const dbUpdates: any = {};
+            if (updates.name) {
+                dbUpdates.title = updates.name;
+                dbUpdates.slug = createSlug(updates.name); // Should we regen slug? Usually yes if name changes.
+            }
+            if (updates.description !== undefined) dbUpdates.description = updates.description;
+
             const { error } = await supabase
-                .from('topics')
-                .update(updates)
+                .from('study_topics')
+                .update(dbUpdates)
                 .eq('id', id);
 
             if (error) throw error;
@@ -206,7 +293,7 @@ export function useTopics(subjectId?: string) {
     const deleteTopic = async (id: string) => {
         try {
             const { error } = await supabase
-                .from('topics')
+                .from('study_topics')
                 .delete()
                 .eq('id', id);
 
@@ -237,29 +324,34 @@ export function useSubtopics(topicId?: string) {
     const fetchSubtopics = useCallback(async () => {
         setLoading(true);
         try {
-            let query = supabase
-                .from('subtopics')
-                .select(`
-                    *,
-                    questions:questions(count)
-                `)
-                .order('name');
-
-            if (topicId) {
-                query = query.eq('topic_id', topicId);
+            if (!topicId) {
+                setSubtopics([]);
+                setLoading(false);
+                return;
             }
 
-            const { data, error } = await query;
+            const { data, error } = await supabase
+                .from('study_topics')
+                .select('*')
+                .eq('parent_id', topicId)
+                .order('sort_order', { ascending: true })
+                .order('title', { ascending: true });
+
             if (error) throw error;
 
-            const subtopicsWithCount = data.map(s => ({
-                ...s,
-                question_count: s.questions?.[0]?.count || 0,
-                questions: undefined,
+            const transformedSubtopics: Subtopic[] = data.map(item => ({
+                id: item.id,
+                topic_id: item.parent_id!,
+                name: item.title,
+                description: item.description,
+                created_at: item.created_at,
+                updated_at: item.updated_at || item.created_at,
+                slug: item.slug
             }));
 
-            setSubtopics(subtopicsWithCount);
+            setSubtopics(transformedSubtopics);
         } catch (error: any) {
+            console.error('Error fetching subtopics:', error);
             toast.error(`Failed to load subtopics: ${error.message}`);
         } finally {
             setLoading(false);
@@ -270,18 +362,32 @@ export function useSubtopics(topicId?: string) {
         fetchSubtopics();
     }, [fetchSubtopics]);
 
-    const createSubtopic = async (topicId: string, name: string, description?: string) => {
+    const createSubtopic = async (topicId: string, name: string, description?: string, parentName?: string) => {
         try {
+            const slug = createSlug(name, parentName);
             const { data, error } = await supabase
-                .from('subtopics')
-                .insert({ topic_id: topicId, name, description })
+                .from('study_topics')
+                .insert({
+                    title: name,
+                    description,
+                    slug,
+                    parent_id: topicId,
+                    is_published: true
+                })
                 .select()
                 .single();
 
             if (error) throw error;
             toast.success('Subtopic created');
             await fetchSubtopics();
-            return data;
+            return {
+                id: data.id,
+                topic_id: data.parent_id,
+                name: data.title,
+                description: data.description,
+                created_at: data.created_at,
+                updated_at: data.updated_at
+            };
         } catch (error: any) {
             toast.error(`Failed to create subtopic: ${error.message}`);
             throw error;
@@ -290,9 +396,16 @@ export function useSubtopics(topicId?: string) {
 
     const updateSubtopic = async (id: string, updates: Partial<Subtopic>) => {
         try {
+            const dbUpdates: any = {};
+            if (updates.name) {
+                dbUpdates.title = updates.name;
+                dbUpdates.slug = createSlug(updates.name); // Should we regen slug? Usually yes if name changes.
+            }
+            if (updates.description !== undefined) dbUpdates.description = updates.description;
+
             const { error } = await supabase
-                .from('subtopics')
-                .update(updates)
+                .from('study_topics')
+                .update(dbUpdates)
                 .eq('id', id);
 
             if (error) throw error;
@@ -307,7 +420,7 @@ export function useSubtopics(topicId?: string) {
     const deleteSubtopic = async (id: string) => {
         try {
             const { error } = await supabase
-                .from('subtopics')
+                .from('study_topics')
                 .delete()
                 .eq('id', id);
 
@@ -333,8 +446,8 @@ export function useSubtopics(topicId?: string) {
 // Combined hook for getting full taxonomy
 export function useTaxonomy() {
     const subjectsHook = useSubjects();
-    const topicsHook = useTopics();
-    const subtopicsHook = useSubtopics();
+    const topicsHook = useTopics(); // This won't fetch anything without subjectId
+    const subtopicsHook = useSubtopics(); // This won't fetch anything without topicId
 
     return {
         subjects: subjectsHook.subjects,

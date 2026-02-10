@@ -197,7 +197,7 @@ function TopicsColumn({
     selectedSubject: Subject | null;
     selectedTopic: Topic | null;
     onSelect: (topic: Topic | null) => void;
-    onCreate: (subjectId: string, name: string, description?: string) => Promise<any>;
+    onCreate: (subjectId: string, name: string, description?: string, parentName?: string) => Promise<any>;
     onUpdate: (id: string, updates: Partial<Topic>) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
 }) {
@@ -229,7 +229,7 @@ function TopicsColumn({
                     title="Create Topic"
                     description={`Add a new topic under ${selectedSubject.name}`}
                     onSubmit={async (name, description) => {
-                        await onCreate(selectedSubject.id, name, description);
+                        await onCreate(selectedSubject.id, name, description, selectedSubject.name);
                     }}
                     trigger={
                         <Button variant="outline" size="sm" className="w-full">
@@ -275,7 +275,7 @@ function SubtopicsColumn({
     subtopics: Subtopic[];
     loading: boolean;
     selectedTopic: Topic | null;
-    onCreate: (topicId: string, name: string, description?: string) => Promise<any>;
+    onCreate: (topicId: string, name: string, description?: string, parentName?: string) => Promise<any>;
     onUpdate: (id: string, updates: Partial<Subtopic>) => Promise<void>;
     onDelete: (id: string) => Promise<void>;
 }) {
@@ -307,7 +307,7 @@ function SubtopicsColumn({
                     title="Create Subtopic"
                     description={`Add a new subtopic under ${selectedTopic.name}`}
                     onSubmit={async (name, description) => {
-                        await onCreate(selectedTopic.id, name, description);
+                        await onCreate(selectedTopic.id, name, description, selectedTopic.name);
                     }}
                     trigger={
                         <Button variant="outline" size="sm" className="w-full">

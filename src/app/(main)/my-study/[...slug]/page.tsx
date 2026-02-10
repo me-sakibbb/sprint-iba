@@ -31,7 +31,8 @@ const iconMap: Record<string, any> = {
 export default function StudyTopicPage({ params }: { params: Promise<{ slug: string[] }> }) {
     const router = useRouter();
     const unwrappedParams = use(params);
-    const slug = Array.isArray(unwrappedParams.slug) ? unwrappedParams.slug.join('-') : unwrappedParams.slug;
+    const pathSegments = Array.isArray(unwrappedParams.slug) ? unwrappedParams.slug : [unwrappedParams.slug];
+    const slug = pathSegments[pathSegments.length - 1];
 
     // 1. Fetch full hierarchy to build sidebar
     const { topics: allSubjects, loading: structureLoading } = useStudyTopics();
@@ -86,10 +87,39 @@ export default function StudyTopicPage({ params }: { params: Promise<{ slug: str
             }
 
             if (firstSubtopicSlug && firstSubtopicSlug !== slug) {
-                redirectDestination = `/my-study/${firstSubtopicSlug.replace(/-/g, '/')}`;
+                // To build the hierarchal path, we need to find where firstSubtopicSlug belongs
+                let targetPath = `/my-study/${root.slug}`;
+                const topic = root.children?.find((t: any) => t.id === firstSubtopicSlug || t.slug === firstSubtopicSlug || t.children?.some((c: any) => c.slug === firstSubtopicSlug));
+
+                if (topic) {
+                    targetPath += `/${topic.slug}`;
+                    const subtopic = topic.children?.find((c: any) => c.slug === firstSubtopicSlug);
+                    if (subtopic) targetPath += `/${subtopic.slug}`;
+                }
+
+                redirectDestination = targetPath;
             } else if (!firstSubtopicSlug) {
                 showNoContent = true;
             }
+        }
+    }
+
+    // 2. Canonical URL check - if current URL is flat, redirect to hierarchical
+    if (!redirectDestination && match) {
+        const { root, type, node } = match;
+        let expectedPath: string[] = [];
+
+        if (type === 'subject') expectedPath = [root.slug];
+        else if (type === 'topic') expectedPath = [root.slug, node.slug];
+        else if (type === 'subtopic') {
+            const parentTopic = root.children?.find((t: any) => t.children?.some((c: any) => c.id === node.id));
+            if (parentTopic) expectedPath = [root.slug, parentTopic.slug, node.slug];
+            else expectedPath = [root.slug, node.slug];
+        }
+
+        const currentPath = pathSegments;
+        if (expectedPath.length > 0 && (currentPath.length !== expectedPath.length || currentPath.some((s, i) => s !== expectedPath[i]))) {
+            redirectDestination = `/my-study/${expectedPath.join('/')}`;
         }
     }
 
@@ -101,12 +131,52 @@ export default function StudyTopicPage({ params }: { params: Promise<{ slug: str
         }
     }, [redirectDestination, router]);
 
-    // 1. Loading State
+    // 1. Loading State - Skeleton Layout
     if (structureLoading || isRedirecting || (redirectDestination && !isRedirecting)) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-                <p className="text-muted-foreground">{isRedirecting || redirectDestination ? "Redirecting..." : "Loading study content..."}</p>
+            <div className="w-full h-full pb-8 pt-6 px-6">
+                {/* Breadcrumbs Skeleton */}
+                <div className="flex items-center gap-2 mb-6">
+                    <div className="w-20 h-4 rounded bg-muted animate-pulse" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    <div className="w-32 h-4 rounded bg-muted animate-pulse" />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] gap-6 items-start">
+                    {/* LEFT SIDEBAR SKELETON */}
+                    <div className="hidden md:block sticky top-20">
+                        <div className="rounded-xl border border-border/40 shadow-sm bg-background h-[calc(100vh-6rem)] overflow-hidden">
+                            <div className="p-4 border-b">
+                                <div className="w-24 h-4 rounded bg-muted animate-pulse" />
+                            </div>
+                            <div className="p-2 space-y-2">
+                                {[1, 2, 3, 4, 5, 6].map((i) => (
+                                    <div key={i} className="w-full h-10 rounded bg-muted/50 animate-pulse" />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* RIGHT CONTENT SKELETON */}
+                    <div className="min-w-0 space-y-6 pr-4">
+                        {/* Title & Desc */}
+                        <div className="border-b pb-6 space-y-4">
+                            <div className="w-3/4 h-8 rounded bg-muted animate-pulse" />
+                            <div className="w-full h-4 rounded bg-muted/50 animate-pulse" />
+                            <div className="w-2/3 h-4 rounded bg-muted/50 animate-pulse" />
+                        </div>
+
+                        {/* Tabs */}
+                        <div className="flex gap-4 border-b pb-2">
+                            <div className="w-20 h-8 rounded bg-muted animate-pulse" />
+                            <div className="w-20 h-8 rounded bg-muted animate-pulse" />
+                            <div className="w-20 h-8 rounded bg-muted animate-pulse" />
+                        </div>
+
+                        {/* Content Block */}
+                        <div className="w-full h-64 rounded bg-muted/30 animate-pulse" />
+                    </div>
+                </div>
             </div>
         );
     }
@@ -154,13 +224,29 @@ export default function StudyTopicPage({ params }: { params: Promise<{ slug: str
     const readingMaterials = contentNode?.materials?.filter(m => m.type === 'reading' || m.type === 'link' || m.type === 'video') || [];
 
     return (
-        <div className="w-full h-full pb-8">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4 px-4">
-                <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => router.push("/my-study")}>
+        <div className="w-full h-full pb-8 pt-6 px-6">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6 overflow-hidden">
+                <Button variant="ghost" size="sm" className="h-8 px-2 shrink-0" onClick={() => router.push("/my-study")}>
                     <ArrowLeft className="w-4 h-4 mr-1" /> My Study
                 </Button>
-                <ChevronRight className="w-4 h-4" />
-                <span className="font-medium text-foreground">{root.title}</span>
+                <ChevronRight className="w-4 h-4 shrink-0" />
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                    <span className="font-medium text-foreground whitespace-nowrap">{root.title}</span>
+                    {type !== 'subject' && (
+                        <>
+                            <ChevronRight className="w-4 h-4 shrink-0" />
+                            <span className="font-medium text-foreground truncate max-w-[150px]" title={type === 'topic' ? node.title : root.children?.find((t: any) => t.children?.some((c: any) => c.id === node.id))?.title}>
+                                {type === 'topic' ? node.title : root.children?.find((t: any) => t.children?.some((c: any) => c.id === node.id))?.title}
+                            </span>
+                        </>
+                    )}
+                    {type === 'subtopic' && (
+                        <>
+                            <ChevronRight className="w-4 h-4 shrink-0" />
+                            <span className="font-medium text-primary truncate max-w-[150px]" title={node.title}>{node.title}</span>
+                        </>
+                    )}
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] lg:grid-cols-[300px_1fr] gap-6 items-start">
@@ -170,7 +256,11 @@ export default function StudyTopicPage({ params }: { params: Promise<{ slug: str
                     <StudyTopicSidebar
                         topics={root.children || []}
                         currentSubtopicId={contentNode?.id || null}
-                        onSelectSubtopic={(sub) => router.push(`/my-study/${sub.slug.replace(/-/g, '/')}`)}
+                        onSelectSubtopic={(sub) => {
+                            const topic = root.children?.find((t: any) => t.children?.some((c: any) => c.id === sub.id));
+                            if (topic) router.push(`/my-study/${root.slug}/${topic.slug}/${sub.slug}`);
+                            else router.push(`/my-study/${root.slug}/${sub.slug}`);
+                        }}
                         progress={progress}
                         className="rounded-xl border border-border/40 shadow-sm"
                     />

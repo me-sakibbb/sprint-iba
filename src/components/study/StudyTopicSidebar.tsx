@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
     ChevronRight, ChevronDown, Circle, CheckCircle,
@@ -9,6 +9,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { StudyTopicWithChildren } from "@/hooks/useStudy";
+
+// Module-level state: persists across component unmount/remount (route changes)
+let _persistedExpandedTopics: Set<string> = new Set();
 
 interface StudyTopicSidebarProps {
     topics: StudyTopicWithChildren[];
@@ -25,32 +28,39 @@ export default function StudyTopicSidebar({
     progress,
     className
 }: StudyTopicSidebarProps) {
-    // Determine which topics should be expanded
-    // Expanding logic:
-    // 1. If currently selected subtopic exists, expand its parent topic
-    // 2. Otherwise allow manual toggling
+    // Initialize from persisted state so we never lose expanded sections on remount
+    const [expandedTopics, setExpandedTopics] = useState<Set<string>>(() => {
+        // Start from the persisted state
+        const initial = new Set(_persistedExpandedTopics);
 
-    // We'll store expanded topic IDs
-    const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
+        // Also ensure the parent of the current subtopic is expanded
+        if (currentSubtopicId) {
+            const parent = topics.find(t => t.children.some(c => c.id === currentSubtopicId));
+            if (parent) {
+                initial.add(parent.id);
+            }
+        }
 
-    // Auto-expand parent of current subtopic on mount/change
+        return initial;
+    });
+
+    // Sync expanded state to module-level variable on every change
+    useEffect(() => {
+        _persistedExpandedTopics = new Set(expandedTopics);
+    }, [expandedTopics]);
+
+    // Auto-expand parent of current subtopic when it changes
     useEffect(() => {
         if (currentSubtopicId) {
             const parent = topics.find(t => t.children.some(c => c.id === currentSubtopicId));
             if (parent) {
                 setExpandedTopics(prev => {
+                    if (prev.has(parent.id)) return prev;
                     const next = new Set(prev);
                     next.add(parent.id);
                     return next;
                 });
             }
-        } else if (topics.length > 0) {
-            // Optional: Auto expand first topic if nothing selected
-            setExpandedTopics(prev => {
-                const next = new Set(prev);
-                next.add(topics[0].id);
-                return next;
-            });
         }
     }, [currentSubtopicId, topics]);
 
@@ -86,14 +96,19 @@ export default function StudyTopicSidebar({
                         ? (completedSubtopics / totalSubtopics) * 100
                         : 0;
 
+                    const isParentOfActive = topic.children.some(sub => sub.id === currentSubtopicId);
+
                     return (
                         <div key={topic.id} className="mb-1">
                             {/* Topic Header */}
                             <button
                                 onClick={() => toggleTopic(topic.id)}
                                 className={cn(
-                                    "w-full flex items-center justify-between px-4 py-3 text-left hover:bg-accent/50 transition-colors group",
-                                    isExpanded && "bg-accent/30"
+                                    "w-full flex items-center justify-between px-4 py-3 text-left transition-colors group",
+                                    isParentOfActive
+                                        ? "bg-accent/60 hover:bg-accent/20"
+                                        : "hover:bg-accent/50",
+                                    !isParentOfActive && isExpanded && "bg-muted/50"
                                 )}
                             >
                                 <div className="flex items-center gap-3 overflow-hidden">
@@ -117,7 +132,7 @@ export default function StudyTopicSidebar({
 
                             {/* Subtopic List */}
                             {isExpanded && (
-                                <div className="bg-accent/20 border-y border-border/40">
+                                <div className="bg-muted/10 border-y border-border/40">
                                     {topic.children.length > 0 ? (
                                         topic.children.map((subtopic, subIndex) => {
                                             const isActive = subtopic.id === currentSubtopicId;
@@ -131,8 +146,8 @@ export default function StudyTopicSidebar({
                                                     className={cn(
                                                         "w-full flex items-start gap-3 px-4 py-2.5 text-left text-sm transition-colors border-l-2",
                                                         isActive
-                                                            ? "bg-primary/5 border-primary text-primary font-medium"
-                                                            : "border-transparent hover:bg-accent/50 text-muted-foreground hover:text-foreground pl-[18px]"
+                                                            ? "bg-accent/10 border-accent text-foreground font-medium"
+                                                            : "border-transparent hover:bg-accent/5 text-muted-foreground hover:text-foreground pl-[18px]"
                                                     )}
                                                     style={{ paddingLeft: isActive ? '16px' : '18px' }}
                                                 >
@@ -142,7 +157,7 @@ export default function StudyTopicSidebar({
                                                         ) : (
                                                             <div className={cn(
                                                                 "w-1.5 h-1.5 rounded-full",
-                                                                isActive ? "bg-primary" : "bg-border"
+                                                                isActive ? "bg-accent" : "bg-border"
                                                             )} />
                                                         )}
                                                     </div>
