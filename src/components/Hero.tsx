@@ -1,14 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Trophy, Users, Zap } from "lucide-react";
+import { RetroGrid } from "@/components/ui/retro-grid";
 
 const Hero = () => {
   return (
     <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden gradient-subtle">
-      {/* Decorative elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 right-20 w-72 h-72 bg-accent/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 left-20 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
+      <RetroGrid />
 
       <div className="container relative z-10 px-6 py-20">
         <div className="max-w-4xl mx-auto text-center space-y-8">

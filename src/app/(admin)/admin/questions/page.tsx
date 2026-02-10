@@ -109,9 +109,43 @@ export default function QuestionExtractor() {
                     subject_id: q.subject_id,
                     topic_id: q.topic_id,
                     subtopic_id: q.subtopic_id,
+                    image_url: q.image_url,
+                    has_image: q.has_image,
                     is_verified: true
                 } as any)
                 .eq('id', q.local_id);
+
+            if (error) throw error;
+
+            // Handle additional images
+            // 1. Delete all existing images for this question (simplest sync)
+            const { error: deleteError } = await supabase
+                .from('question_images')
+                .delete()
+                .eq('question_id', q.local_id);
+
+            if (deleteError) {
+                console.error("Error deleting old images:", deleteError);
+            }
+
+            // 2. Insert current images if any
+            if (q.images && q.images.length > 0) {
+                const imagesToInsert = q.images.map((img, index) => ({
+                    question_id: q.local_id,
+                    image_url: img.image_url,
+                    description: img.description || '',
+                    image_order: index + 1
+                }));
+
+                const { error: insertError } = await supabase
+                    .from('question_images')
+                    .insert(imagesToInsert);
+
+                if (insertError) {
+                    console.error("Error inserting images:", insertError);
+                    toast.error("Failed to save some images");
+                }
+            }
 
             if (error) throw error;
 
@@ -607,39 +641,136 @@ function QuestionCard({
             {open && (
                 <CardContent className="pt-0 border-t border-slate-50 space-y-6">
                     {/* Image Display */}
-                    {(q.has_image || (q.images && q.images.length > 0)) && (
-                        <div className="mt-4 space-y-4">
-                            {q.image_url && (
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                        <ImageIcon className="w-3 h-3" /> Main Image
-                                    </Label>
+                    <div className="mt-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                <ImageIcon className="w-3 h-3" /> Question Images
+                            </Label>
+                            <div>
+                                <input
+                                    type="file"
+                                    id={`upload-${q.local_id}`}
+                                    className="hidden"
+                                    accept="image/*"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+
+                                        try {
+                                            toast.info("Uploading image...");
+                                            const fileName = `manual_upload_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+                                            const { data, error } = await supabase.storage
+                                                .from('question-images')
+                                                .upload(fileName, file, {
+                                                    contentType: file.type,
+                                                    upsert: true,
+                                                });
+
+                                            if (error) throw error;
+
+                                            const { data: urlData } = supabase.storage
+                                                .from('question-images')
+                                                .getPublicUrl(data.path);
+
+                                            const imageUrl = urlData.publicUrl;
+
+                                            // If no main image, set as main
+                                            if (!q.image_url) {
+                                                onUpdate(q.local_id, 'image_url', imageUrl);
+                                                onUpdate(q.local_id, 'has_image', true);
+                                                toast.success("Main image added");
+                                            } else {
+                                                // Add to additional images
+                                                const newImage = {
+                                                    id: crypto.randomUUID(),
+                                                    image_url: imageUrl,
+                                                    description: '',
+                                                    image_order: (q.images?.length || 0) + 1
+                                                };
+                                                onUpdate(q.local_id, 'images', [...(q.images || []), newImage]);
+                                                toast.success("Additional image added");
+                                            }
+                                        } catch (error: any) {
+                                            toast.error(`Upload failed: ${error.message}`);
+                                        }
+                                    }}
+                                />
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => document.getElementById(`upload-${q.local_id}`)?.click()}
+                                >
+                                    <Upload className="w-3 h-3 mr-1" />
+                                    Add Image
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Main Image */}
+                        {q.image_url && (
+                            <div className="space-y-2 relative group">
+                                <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    Main Image
+                                </Label>
+                                <div className="relative inline-block">
                                     <img
                                         src={q.image_url}
                                         alt="Question image"
-                                        className="max-w-full rounded-lg border border-slate-200"
+                                        className="max-h-64 rounded-lg border border-slate-200 object-contain bg-slate-50"
                                     />
+                                    <Button
+                                        variant="destructive"
+                                        size="icon"
+                                        className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => {
+                                            onUpdate(q.local_id, 'image_url', null);
+                                            // If no additional images, set has_image to false
+                                            if (!q.images || q.images.length === 0) {
+                                                onUpdate(q.local_id, 'has_image', false);
+                                            }
+                                        }}
+                                    >
+                                        <Trash2 className="w-3 h-3" />
+                                    </Button>
                                 </div>
-                            )}
+                            </div>
+                        )}
 
-                            {q.images && q.images.length > 0 && (
-                                <div className="grid grid-cols-1 gap-4">
-                                    {q.images.map((img, i) => (
-                                        <div key={img.id || i} className="space-y-2">
-                                            <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                                                <ImageIcon className="w-3 h-3" /> Image {i + 1} {img.description && `- ${img.description}`}
-                                            </Label>
+                        {/* Additional Images */}
+                        {q.images && q.images.length > 0 && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {q.images.map((img, i) => (
+                                    <div key={img.id || i} className="space-y-2 relative group">
+                                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                            Image {i + 1} {img.description && `- ${img.description}`}
+                                        </Label>
+                                        <div className="relative inline-block">
                                             <img
                                                 src={img.image_url}
                                                 alt={`Extra image ${i + 1}`}
-                                                className="max-w-full rounded-lg border border-slate-200"
+                                                className="max-h-48 rounded-lg border border-slate-200 object-contain bg-slate-50"
                                             />
+                                            <Button
+                                                variant="destructive"
+                                                size="icon"
+                                                className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                onClick={() => {
+                                                    const newImages = q.images?.filter((_, index) => index !== i);
+                                                    onUpdate(q.local_id, 'images', newImages);
+                                                    if (!q.image_url && (!newImages || newImages.length === 0)) {
+                                                        onUpdate(q.local_id, 'has_image', false);
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 className="w-3 h-3" />
+                                            </Button>
                                         </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4">
                         <div className="flex items-center justify-between mb-4">
