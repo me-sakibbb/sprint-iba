@@ -81,17 +81,6 @@ export function getDifficultyWeights(daysRemaining: number): {
     return { easy: 0.2, medium: 0.3, hard: 0.5 };
 }
 
-/**
- * Get subject rotation for a given day
- */
-export function getSubjectRotation(dayIndex: number): string[] {
-    const rotations = [
-        ["Math", "English", "Analytical"],
-        ["English", "Analytical", "Math"],
-        ["Analytical", "Math", "English"],
-    ];
-    return rotations[dayIndex % 3];
-}
 
 /**
  * AI: Analyze topic complexity and priority
@@ -232,9 +221,9 @@ export function smartAllocateQuestions(
     progressWeights.hard /= total;
 
     // Calculate ideal distribution
-    let idealEasy = Math.round(quota * progressWeights.easy);
+    const idealEasy = Math.round(quota * progressWeights.easy);
     let idealMedium = Math.round(quota * progressWeights.medium);
-    let idealHard = Math.round(quota * progressWeights.hard);
+    const idealHard = Math.round(quota * progressWeights.hard);
 
     // Ensure we hit quota
     while (idealEasy + idealMedium + idealHard < quota) idealMedium++;
