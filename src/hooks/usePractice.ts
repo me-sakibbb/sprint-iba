@@ -12,6 +12,12 @@ import { getUserStreak, updateLoginStreak, getStreakStats } from '@/services/str
 type Question = Tables<'questions'>;
 type PracticeSession = Tables<'practice_sessions'>;
 
+// Helper to safely format array values for PostgREST 'in' filter
+// Maps each value to a double-quoted string with internal double quotes escaped
+const safeInFilter = (values: string[]) => {
+    return values.map(v => `"${v.replace(/"/g, '""')}"`).join(',');
+};
+
 interface PracticeConfig {
     mode: 'timed' | 'untimed';
     timePerQuestion?: number; // seconds
@@ -142,7 +148,7 @@ export function usePractice() {
                         const subtopics = config.subjects.filter(s => !['Math', 'English', 'Analytical', 'Overall'].includes(s));
 
                         if (subjects.length > 0 && subtopics.length > 0) {
-                            query = query.or(`topic.in.(${subjects.join(',')}), subtopic.in.(${subtopics.join(',')})`);
+                            query = query.or(`topic.in.(${safeInFilter(subjects)}), subtopic.in.(${safeInFilter(subtopics)})`);
                         } else if (subjects.length > 0) {
                             query = query.in('topic', subjects);
                         } else if (subtopics.length > 0) {
@@ -187,7 +193,7 @@ export function usePractice() {
                     const subtopics = config.subjects.filter(s => !['Math', 'English', 'Analytical', 'Overall'].includes(s));
 
                     if (subjects.length > 0 && subtopics.length > 0) {
-                        query = query.or(`topic.in.(${subjects.join(',')}), subtopic.in.(${subtopics.join(',')})`);
+                        query = query.or(`topic.in.(${safeInFilter(subjects)}), subtopic.in.(${safeInFilter(subtopics)})`);
                     } else if (subjects.length > 0) {
                         query = query.in('topic', subjects);
                     } else if (subtopics.length > 0) {
