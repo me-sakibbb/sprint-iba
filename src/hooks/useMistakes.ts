@@ -112,13 +112,13 @@ export function useMistakes() {
             // Fetch all stats for these questions in one go from the view
             const questionIds = Array.from(new Set(mistakeLogs?.map(log => log.question_id) || []));
             const { data: allStats } = await supabase
-                .from('mistake_stats')
+                .from('mistake_stats' as any)
                 .select('*')
                 .eq('user_id', user.id)
                 .in('question_id', questionIds);
 
             for (const log of mistakeLogs || []) {
-                const stats = allStats?.find(s => s.question_id === log.question_id);
+                const stats = (allStats as any[])?.find(s => s.question_id === log.question_id);
 
                 enrichedMistakes.push({
                     ...log,
@@ -171,16 +171,32 @@ export function useMistakes() {
 
             // Get high priority count
             let highPriority: any[] = [];
-            try {
-                const { data } = await supabase
-                    .rpc('get_high_priority_mistakes', {
-                        p_user_id: user.id,
-                        p_limit: 1000,
-                        p_min_score: 30
-                    });
-                highPriority = data || [];
-            } catch (err) {
-                console.error('Error fetching high priority mistakes:', err);
+
+            const { data: rpcData, error: rpcError } = await supabase
+                .rpc('get_high_priority_mistakes', {
+                    p_user_id: user.id,
+                    p_limit: 1000,
+                    p_min_score: 30
+                });
+
+            if (rpcError) {
+                console.warn('RPC get_high_priority_mistakes failed, using fallback query:', rpcError);
+                // Fallback: Query the view directly
+                const { data: fallbackData, error: fallbackError } = await (supabase
+                    .from('mistake_stats' as any)
+                    .select('*') as any)
+                    .eq('user_id', user.id)
+                    .gte('severity_score', 30)
+                    .order('severity_score', { ascending: false })
+                    .limit(1000);
+
+                if (fallbackError) {
+                    console.error('Fallback query also failed:', fallbackError);
+                } else {
+                    highPriority = fallbackData || [];
+                }
+            } else {
+                highPriority = rpcData || [];
             }
 
             // Calculate analytics
@@ -242,21 +258,32 @@ export function useMistakes() {
     const getHighPriorityMistakes = useCallback(async (limit: number = 50) => {
         if (!user) return [];
 
-        try {
-            const { data, error } = await supabase
-                .rpc('get_high_priority_mistakes', {
-                    p_user_id: user.id,
-                    p_limit: limit,
-                    p_min_score: 30
-                });
+        const { data, error } = await supabase
+            .rpc('get_high_priority_mistakes', {
+                p_user_id: user.id,
+                p_limit: limit,
+                p_min_score: 30
+            });
 
-            if (error) throw error;
-            return data || [];
+        if (error) {
+            console.warn('RPC get_high_priority_mistakes failed, using fallback query:', error);
+            // Fallback: Query the view directly
+            const { data: fallbackData, error: fallbackError } = await supabase
+                .from('mistake_stats')
+                .select('*')
+                .eq('user_id', user.id)
+                .gte('severity_score', 30)
+                .order('severity_score', { ascending: false })
+                .limit(limit);
 
-        } catch (err: any) {
-            console.error('Error fetching high priority mistakes:', err);
-            return [];
+            if (fallbackError) {
+                console.error('Fallback query also failed:', fallbackError);
+                return [];
+            }
+            return fallbackData || [];
         }
+
+        return data || [];
     }, [user]);
 
     // Get questions from mistakes for practice
@@ -283,8 +310,8 @@ export function useMistakes() {
 
             // Sort by severity score
             const sortedQuestions = questions?.sort((a, b) => {
-                const severityA = highPriorityMistakes.find(m => m.question_id === a.id)?.severity_score || 0;
-                const severityB = highPriorityMistakes.find(m => m.question_id === b.id)?.severity_score || 0;
+                const severityA = (highPriorityMistakes as any[]).find(m => m.question_id === a.id)?.severity_score || 0;
+                const severityB = (highPriorityMistakes as any[]).find(m => m.question_id === b.id)?.severity_score || 0;
                 return severityB - severityA;
             });
 

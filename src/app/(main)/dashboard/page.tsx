@@ -3,10 +3,8 @@
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-export const dynamic = 'force-dynamic';
-export const fetchCache = 'force-no-store';
-
 import { Button } from "@/components/ui/button";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trophy, Target, Zap, BookOpen, Sparkles, ClipboardList, FileText, Brain } from "lucide-react";
 import { useRouter } from "next/navigation";
