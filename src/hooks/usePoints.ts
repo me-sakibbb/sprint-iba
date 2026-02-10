@@ -15,6 +15,7 @@ import {
     ensureNonNegative,
 } from '@/utils/pointCalculations';
 import { updateLoginStreak, getStreakStats } from '@/services/streakService';
+import { showPointToast } from '@/components/AchievementToast';
 
 export interface PointsData {
     totalVp: number;
@@ -310,10 +311,11 @@ export function usePoints() {
         const checkLoginStreak = async () => {
             const result = await updateLoginStreak(user.id);
             if (result.vpAwarded > 0) {
-                toast.success(`Daily login streak! +${result.vpAwarded} VP`, {
-                    description: `${result.streakCount} day streak`,
-                    duration: 3000,
-                    // icon: '🔥'
+                showPointToast({
+                    amount: result.vpAwarded,
+                    reason: 'Daily Login Streak',
+                    type: 'streak',
+                    description: `${result.streakCount} day study streak! Keep it up.`
                 });
                 fetchPoints();
             }

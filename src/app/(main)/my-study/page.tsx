@@ -55,7 +55,7 @@ export default function MyStudyPage() {
     }
 
     return (
-        <div className="max-w-4xl mx-auto space-y-8 pb-8">
+        <div className="max-w-6xl mx-auto space-y-8 pb-8 pt-6">
             {/* Header */}
             <div className="space-y-2">
                 <div className="flex items-center gap-3">
@@ -125,16 +125,15 @@ export default function MyStudyPage() {
                 />
             </div>
 
-            {/* Topic List */}
+            {/* Topic Grid */}
             {filteredTopics.length > 0 ? (
-                <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredTopics.map((topic) => (
-                        <div key={topic.id} className="space-y-3">
-                            <StudyTopicCard
-                                topic={topic}
-                                progress={progress}
-                            />
-                        </div>
+                        <StudyTopicCard
+                            key={topic.id}
+                            topic={topic}
+                            progress={progress}
+                        />
                     ))}
                 </div>
             ) : searchQuery ? (

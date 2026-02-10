@@ -32,14 +32,14 @@ const presetColors = [
 
 interface StudyTopicFormProps {
     initialData?: {
-        title: string;
-        description: string;
-        icon_name: string;
-        color: string;
-        parent_id: string | null;
-        topic_name: string;
-        subtopic_name: string;
-        is_published: boolean;
+        title?: string;
+        description?: string;
+        icon_name?: string;
+        color?: string;
+        parent_id?: string | null;
+        topic_name?: string;
+        subtopic_name?: string;
+        is_published?: boolean;
     };
     parentOptions: { id: string; title: string }[];
     onSubmit: (data: any) => void;

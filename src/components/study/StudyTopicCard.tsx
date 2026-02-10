@@ -42,74 +42,78 @@ export default function StudyTopicCard({ topic, progress, totalMaterials }: Stud
         ? Math.round((materialProgress * 0.6 + Math.min(practiceAccuracy, 100) * 0.4))
         : (practiceAttempted > 0 ? Math.round(practiceAccuracy) : 0);
 
+    const themeColor = topic.color || '#6366f1';
+
     return (
         <Card
             className={cn(
-                "group cursor-pointer border-border/40 hover:border-primary/30 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 overflow-hidden",
+                "group cursor-pointer border-border/40 hover:border-primary/30 transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 overflow-hidden h-full flex flex-col",
                 isCompleted && "border-green-500/30 bg-green-500/5"
             )}
             onClick={() => router.push(`/my-study/${topic.slug}`)}
         >
-            <CardContent className="p-0">
-                <div className="flex items-stretch">
-                    {/* Color accent bar - kept as solid color identifier */}
+            {/* Top Color Line */}
+            <div className="h-1.5 w-full" style={{ backgroundColor: themeColor }} />
+
+            <CardContent className="p-6 flex flex-col flex-1 gap-4">
+                {/* Header: Icon & Title */}
+                <div className="flex items-start justify-between gap-4">
                     <div
-                        className="w-1.5 shrink-0"
-                        style={{ backgroundColor: topic.color || '#6366f1' }}
-                    />
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm shrink-0"
+                        style={{
+                            backgroundColor: `${themeColor}15`, // 15 = roughly 8-10% opacity hex
+                            color: themeColor,
+                        }}
+                    >
+                        <IconComponent className="w-7 h-7" />
+                    </div>
+                    {overallProgress > 0 && (
+                        <Badge variant="secondary" className="font-bold">
+                            {overallProgress}%
+                        </Badge>
+                    )}
+                </div>
 
-                    <div className="flex-1 p-5 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1 min-w-0">
-                            <div
-                                className="shrink-0 w-12 h-12 rounded-lg flex items-center justify-center"
-                                style={{
-                                    backgroundColor: `${topic.color || '#6366f1'}10`,
-                                    color: topic.color || '#6366f1',
-                                }}
-                            >
-                                <IconComponent className="w-6 h-6" />
-                            </div>
+                <div className="space-y-2 flex-1">
+                    <h3 className="font-bold text-xl text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                        {topic.title}
+                    </h3>
+                    {topic.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">
+                            {topic.description}
+                        </p>
+                    )}
+                </div>
 
-                            <div className="flex-1 min-w-0">
-                                <h3 className="font-semibold text-lg text-foreground truncate mb-1">
-                                    {topic.title}
-                                </h3>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div className="bg-secondary/30 rounded-lg p-2.5 flex flex-col items-center justify-center text-center">
+                        <Layers className="w-4 h-4 text-muted-foreground mb-1" />
+                        <span className="text-lg font-semibold leading-none">{topic.children.length}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Topics</span>
+                    </div>
 
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                                    {topic.children.length > 0 && (
-                                        <div className="flex items-center gap-1.5">
-                                            <Layers className="w-4 h-4 opacity-70" />
-                                            <span>{topic.children.length} topics</span>
-                                        </div>
-                                    )}
-                                    {totalMats > 0 && (
-                                        <div className="flex items-center gap-1.5">
-                                            <BookOpen className="w-4 h-4 opacity-70" />
-                                            <span>{materialsRead}/{totalMats} completed</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right side: Progress + Arrow */}
-                        <div className="flex items-center gap-6 shrink-0">
-                            {overallProgress > 0 && (
-                                <div className="text-right hidden sm:block">
-                                    <div className="text-xl font-bold" style={{ color: topic.color || '#6366f1' }}>
-                                        {overallProgress}%
-                                    </div>
-                                </div>
-                            )}
-                            <ChevronRight className="w-5 h-5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
-                        </div>
+                    <div className="bg-secondary/30 rounded-lg p-2.5 flex flex-col items-center justify-center text-center">
+                        <BookOpen className="w-4 h-4 text-muted-foreground mb-1" />
+                        <span className="text-lg font-semibold leading-none">
+                            {totalMats > 0 ? `${materialsRead}/${totalMats}` : '-'}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Lessons</span>
                     </div>
                 </div>
 
-                {/* Bottom Progress bar - only if started */}
-                {overallProgress > 0 && (
-                    <Progress value={overallProgress} className="h-1 rounded-none bg-transparent" />
-                )}
+                {/* Progress Bar */}
+                <div className="space-y-1.5 pt-2">
+                    <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                        <span>Progress</span>
+                        <span>{overallProgress}%</span>
+                    </div>
+                    <Progress
+                        value={overallProgress}
+                        className="h-2"
+                        indicatorColor={themeColor}
+                    />
+                </div>
             </CardContent>
         </Card>
     );
