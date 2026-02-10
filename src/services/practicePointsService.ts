@@ -5,13 +5,10 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import {
-    calculateAnswerPoints,
     calculateSessionBonus,
-    calculateSpeedBonus,
 } from '@/utils/pointCalculations';
 import { calculateLevel } from '@/config/levels';
 import { updatePracticeStreak } from '@/services/streakService';
-import { checkIsCorrect } from '@/utils/answerValidation';
 
 export interface PracticeAnswerResult {
     vpAwarded: number;
@@ -42,53 +39,15 @@ export async function awardPracticeAnswerPoints(
     timePerQuestion?: number
 ): Promise<PracticeAnswerResult> {
     try {
-        const isCorrect = checkIsCorrect(correctAnswer, userAnswer, options);
-
-        // Calculate speed bonus if timed mode
-        let speedBonus = 0;
-        if (timeTaken !== undefined && timePerQuestion) {
-            const timeRemaining = timePerQuestion - timeTaken;
-            speedBonus = await calculateSpeedBonus(timeRemaining, timePerQuestion);
-        }
-
-        // Calculate answer points
-        const answerVP = await calculateAnswerPoints(difficulty, isCorrect, speedBonus);
-
-        // Record VP transaction
-        await supabase.from('velocity_points' as any).insert({
-            user_id: userId,
-            amount: answerVP,
-            reason: isCorrect ? 'correct_answer' : 'wrong_answer',
-            question_id: questionId,
-            metadata: {
-                difficulty,
-                time_taken: timeTaken,
-                speed_bonus: speedBonus,
-            },
+        // Securely calculate and award points on the server
+        const { data, error } = await supabase.rpc('award_practice_answer_points', {
+            p_question_id: questionId,
+            p_user_answer: userAnswer,
+            p_time_taken: timeTaken || 0,
+            p_time_per_question: timePerQuestion || 0
         });
 
-        // Update user's total VP and Level
-        const { data: currentLevelData } = await supabase
-            .from('user_levels' as any)
-            .select('total_vp, current_level')
-            .eq('user_id', userId)
-            .single();
-
-        const currentVP = (currentLevelData as any)?.total_vp || 0;
-        const oldLevelId = (currentLevelData as any)?.current_level || 1;
-        const newTotalVP = Math.max(0, currentVP + answerVP);
-
-        // Calculate new level
-        const newLevel = calculateLevel(newTotalVP);
-        const leveledUp = newLevel.id > oldLevelId;
-
-        await supabase.from('user_levels' as any).upsert({
-            user_id: userId,
-            total_vp: newTotalVP,
-            current_level: newLevel.id,
-            last_level_up_at: leveledUp ? new Date().toISOString() : undefined,
-            updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' });
+        if (error) throw error;
 
         // Dispatch event for instant UI update
         if (typeof window !== 'undefined') {
@@ -96,15 +55,15 @@ export async function awardPracticeAnswerPoints(
         }
 
         return {
-            vpAwarded: answerVP,
-            isCorrect,
-            speedBonus,
+            vpAwarded: data.vpAwarded,
+            isCorrect: data.isCorrect,
+            speedBonus: data.speedBonus,
         };
     } catch (error) {
         console.error('Error awarding practice answer points:', error);
         return {
             vpAwarded: 0,
-            isCorrect: userAnswer === correctAnswer,
+            isCorrect: false,
             speedBonus: 0,
         };
     }
