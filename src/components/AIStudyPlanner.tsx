@@ -55,12 +55,6 @@ const AIStudyPlanner = () => {
 
         setGenerating(true);
         try {
-            console.log('Calling generate-study-plan with:', {
-                examDate: examDate.toISOString().split('T')[0],
-                subjectCount: subjectStats.length,
-                totalRemaining: subjectStats.reduce((sum, s) => sum + s.totalRemaining, 0)
-            });
-
             // Call Gemini-powered edge function
             const { data, error } = await supabase.functions.invoke('generate-study-plan', {
                 body: {
@@ -68,8 +62,6 @@ const AIStudyPlanner = () => {
                     subjectStats
                 }
             });
-
-            console.log('Response:', { data, error });
 
             if (error) {
                 console.error('Supabase function error:', error);
@@ -81,7 +73,6 @@ const AIStudyPlanner = () => {
                 throw new Error(data.error + (data.details ? ': ' + data.details : ''));
             }
 
-            console.log('AI-generated study plan:', data);
             setGeneratedPlan(data);
 
             if (data.strategy) {
