@@ -77,9 +77,12 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
         setLoading(true);
 
         try {
+            const from = (page - 1) * filters.itemsPerPage;
+            const to = from + filters.itemsPerPage - 1;
+
             let query = supabase
                 .from('questions')
-                .select('*', { count: 'exact' });
+                .select('*, question_images(*)', { count: 'exact' });
 
             // Apply verification filter
             if (filters.verificationStatus === 'verified') {
@@ -114,55 +117,14 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
                 query = query.ilike('question_text', `%${debouncedSearch}%`);
             }
 
-            // Get count first
-            const { count, error: countError } = await query;
-            if (countError) throw countError;
-
-            setTotalCount(count || 0);
-            setTotalPages(Math.ceil((count || 0) / filters.itemsPerPage));
-
-            // Fetch paginated data
-            const from = (page - 1) * filters.itemsPerPage;
-            const to = from + filters.itemsPerPage - 1;
-
-            let dataQuery = supabase
-                .from('questions')
-                .select('*, question_images(*)');
-
-            // Reapply filters for data query
-            if (filters.verificationStatus === 'verified') {
-                dataQuery = dataQuery.eq('is_verified', true);
-            } else if (filters.verificationStatus === 'unverified') {
-                dataQuery = dataQuery.eq('is_verified', false);
-            }
-
-            if (filters.topic) {
-                dataQuery = dataQuery.eq('topic', filters.topic);
-            }
-
-            if (filters.subject_id) {
-                dataQuery = dataQuery.eq('subject_id', filters.subject_id);
-            }
-            if (filters.topic_id) {
-                dataQuery = dataQuery.eq('topic_id', filters.topic_id);
-            }
-            if (filters.subtopic_id) {
-                dataQuery = dataQuery.eq('subtopic_id', filters.subtopic_id);
-            }
-
-            if (filters.difficulty !== 'all') {
-                dataQuery = dataQuery.eq('difficulty', filters.difficulty);
-            }
-
-            if (debouncedSearch) {
-                dataQuery = dataQuery.ilike('question_text', `%${debouncedSearch}%`);
-            }
-
-            const { data, error } = await dataQuery
+            const { data, count, error } = await query
                 .order('created_at', { ascending: false })
                 .range(from, to);
 
             if (error) throw error;
+
+            setTotalCount(count || 0);
+            setTotalPages(Math.ceil((count || 0) / filters.itemsPerPage));
 
             const formattedQuestions: Question[] = (data || []).map((q: any) => {
                 // Convert array options to labeled object (plain text)
