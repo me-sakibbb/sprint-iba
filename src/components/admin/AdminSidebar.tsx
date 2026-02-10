@@ -11,7 +11,8 @@ import {
     BarChart3,
     ArrowLeft,
     Brain,
-    Trophy
+    Trophy,
+    GraduationCap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ const navItems = [
     { href: "/admin/questions", label: "Question Extractor", icon: BrainCircuit },
     { href: "/admin/taxonomy", label: "Questions Taxonomy", icon: Settings },
     { href: "/admin/practice", label: "Practice", icon: Brain },
+    { href: "/admin/study-content", label: "Study Content", icon: GraduationCap },
     { href: "/admin/exams", label: "Exams", icon: Trophy },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     { href: "/admin/level-config", label: "Level Config", icon: Trophy },

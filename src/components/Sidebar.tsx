@@ -26,7 +26,8 @@ import {
     User,
     ClipboardList,
     FileText,
-    AlertCircle
+    AlertCircle,
+    GraduationCap
 } from "lucide-react"
 
 import {
@@ -114,6 +115,16 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                     <SidebarGroupLabel>Study</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
+                            <SidebarMenuItem>
+                                <SidebarMenuButton
+                                    isActive={isActive("/my-study")}
+                                    tooltip="My Study"
+                                    onClick={() => router.push("/my-study")}
+                                >
+                                    <GraduationCap />
+                                    <span>My Study</span>
+                                </SidebarMenuButton>
+                            </SidebarMenuItem>
                             <SidebarMenuItem>
                                 <SidebarMenuButton
                                     isActive={isActive("/practice")}

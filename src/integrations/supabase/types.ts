@@ -399,6 +399,132 @@ export type Database = {
         }
         Relationships: []
       }
+      study_topics: {
+        Row: {
+          id: string
+          title: string
+          slug: string
+          description: string | null
+          icon_name: string | null
+          color: string | null
+          parent_id: string | null
+          topic_name: string | null
+          subtopic_name: string | null
+          sort_order: number
+          is_published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          slug: string
+          description?: string | null
+          icon_name?: string | null
+          color?: string | null
+          parent_id?: string | null
+          topic_name?: string | null
+          subtopic_name?: string | null
+          sort_order?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          slug?: string
+          description?: string | null
+          icon_name?: string | null
+          color?: string | null
+          parent_id?: string | null
+          topic_name?: string | null
+          subtopic_name?: string | null
+          sort_order?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      study_materials: {
+        Row: {
+          id: string
+          study_topic_id: string
+          title: string
+          content: string | null
+          type: 'note' | 'reading' | 'link' | 'video'
+          url: string | null
+          sort_order: number
+          is_published: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          study_topic_id: string
+          title: string
+          content?: string | null
+          type?: 'note' | 'reading' | 'link' | 'video'
+          url?: string | null
+          sort_order?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          study_topic_id?: string
+          title?: string
+          content?: string | null
+          type?: 'note' | 'reading' | 'link' | 'video'
+          url?: string | null
+          sort_order?: number
+          is_published?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      study_user_progress: {
+        Row: {
+          id: string
+          user_id: string
+          study_topic_id: string
+          materials_read: string[]
+          practice_attempted: number
+          practice_correct: number
+          is_completed: boolean
+          last_accessed_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          study_topic_id: string
+          materials_read?: string[]
+          practice_attempted?: number
+          practice_correct?: number
+          is_completed?: boolean
+          last_accessed_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          study_topic_id?: string
+          materials_read?: string[]
+          practice_attempted?: number
+          practice_correct?: number
+          is_completed?: boolean
+          last_accessed_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

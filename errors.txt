@@ -1,0 +1,1 @@
+supabase/functions/explain-question/index.ts(51,1): error TS1160: Unterminated template literal.

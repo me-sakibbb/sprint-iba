@@ -3,19 +3,20 @@
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
-import { Button } from "@/components/ui/button";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Target, Zap, BookOpen, Sparkles, ClipboardList, FileText, Brain } from "lucide-react";
+
+
+import { Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import DailyGoals from "@/components/DailyGoals";
 import SubjectMastery from "@/components/SubjectMastery";
 import TrackProgress from "@/components/progression/TrackProgress";
 import LevelUpAnimation from "@/components/progression/LevelUpAnimation";
-import LevelBadge from "@/components/badges/LevelBadge";
+
 import { useVelocityPoints } from "@/hooks/useVelocityPoints";
-import { formatVPFull } from "@/utils/vpCalculations";
+
 import DashboardWidgets from "@/components/dashboard/DashboardWidgets";
+import QuickActions from "@/components/dashboard/QuickActions";
 
 const Dashboard = () => {
     const { user, loading: authLoading } = useAuth();
@@ -51,116 +52,7 @@ const Dashboard = () => {
                     <Zap className="w-5 h-5 text-accent" />
                     Quick Actions
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {/* Practice Mode */}
-                    <Card
-                        className="h-full border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent cursor-pointer group hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/5 flex flex-col"
-                        onClick={() => router.push("/practice")}
-                    >
-                        <CardHeader className="pb-3 flex-1">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg gradient-primary flex items-center justify-center shadow-md shrink-0">
-                                    <ClipboardList className="w-5 h-5 text-primary-foreground" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-lg">Practice Mode</CardTitle>
-                                    <CardDescription className="line-clamp-2">Master topics at your pace</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-0 mt-auto">
-                            <Button className="w-full h-9 text-sm btn-hover-glow gradient-primary group-hover:scale-[1.02] transition-transform">
-                                Start Practice
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    {/* Exams */}
-                    <Card
-                        className="h-full border-2 border-accent/20 bg-gradient-to-br from-accent/5 to-transparent cursor-pointer group hover:border-accent/50 transition-all hover:shadow-lg hover:shadow-accent/5 flex flex-col"
-                        onClick={() => router.push("/exams")}
-                    >
-                        <CardHeader className="pb-3 flex-1">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg gradient-accent flex items-center justify-center shadow-md shrink-0">
-                                    <FileText className="w-5 h-5 text-primary-foreground" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-lg">Exams</CardTitle>
-                                    <CardDescription className="line-clamp-2">Mock tests & live exams</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-0 mt-auto">
-                            <Button className="w-full h-9 text-sm btn-hover-glow gradient-accent group-hover:scale-[1.02] transition-transform">
-                                View Exams
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    {/* VocabPoly */}
-                    <Card
-                        className="h-full border-border/40 cursor-pointer group hover:border-primary/30 transition-all hover:shadow-md flex flex-col"
-                        onClick={() => router.push("/vocabpoly")}
-                    >
-                        <CardHeader className="pb-3 flex-1">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-500 shrink-0">
-                                    <Sparkles className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-lg">VocabPoly</CardTitle>
-                                    <CardDescription className="line-clamp-2">Gamified vocabulary</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-0 mt-auto">
-                            <Button variant="outline" className="w-full h-9 text-sm group-hover:bg-primary/5 group-hover:text-primary group-hover:border-primary/30">
-                                Play Now
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    {/* Vocab Sprint */}
-                    <Card className="h-full border-border/40 cursor-pointer group hover:border-primary/30 transition-all hover:shadow-md flex flex-col">
-                        <CardHeader className="pb-3 flex-1">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
-                                    <BookOpen className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-lg">Vocab Sprint</CardTitle>
-                                    <CardDescription className="line-clamp-2">Test your word power</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-0 mt-auto">
-                            <Button variant="outline" className="w-full h-9 text-sm group-hover:bg-primary/5 group-hover:text-primary group-hover:border-primary/30">
-                                Start Sprint
-                            </Button>
-                        </CardContent>
-                    </Card>
-
-                    {/* Math Sprint */}
-                    <Card className="h-full border-border/40 cursor-pointer group hover:border-primary/30 transition-all hover:shadow-md flex flex-col">
-                        <CardHeader className="pb-3 flex-1">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500 shrink-0">
-                                    <Target className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-lg">Math Sprint</CardTitle>
-                                    <CardDescription className="line-clamp-2">Sharpen math skills</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-0 mt-auto">
-                            <Button variant="outline" className="w-full h-9 text-sm group-hover:bg-primary/5 group-hover:text-primary group-hover:border-primary/30">
-                                Start Sprint
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
+                <QuickActions />
             </div>
 
             {/* Daily Goals & Progress */}
