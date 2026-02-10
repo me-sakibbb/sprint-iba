@@ -1,15 +1,12 @@
-// ============================================
-// Example Integration Code
-// Shows how to use the point system in practice/exam flows
-// ============================================
+# Points System Integration Examples
 
-/*
-=====================================================
-PRACTICE SESSION INTEGRATION EXAMPLE
-=====================================================
+This document provides examples of how to integrate the points system into various parts of the application.
+
+## Practice Session Integration
 
 In your practice session handler (e.g., page.tsx or component):
 
+```typescript
 import { awardPracticeAnswerPoints, awardSessionCompletionBonus } from '@/services/practicePointsService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -75,13 +72,13 @@ function PracticePage() {
         toast.success(bonusMessage, { duration: 5000 });
     };
 }
+```
 
-=====================================================
-EXAM COMPLETION INTEGRATION EXAMPLE
-=====================================================
+## Exam Completion Integration
 
 In your exam results handler:
 
+```typescript
 import { awardExamCompletionBonus, calculateExamPercentile } from '@/services/examPointsService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -118,13 +115,13 @@ function ExamResultsPage() {
         toast.success(message, { duration: 5000 });
     };
 }
+```
 
-=====================================================
-MANUAL VP ADJUSTMENT (ADMIN ONLY)
-=====================================================
+## Manual VP Adjustment (Admin Only)
 
 For admin manual adjustments:
 
+```typescript
 import { usePoints } from '@/hooks/usePoints';
 
 function AdminPanel() {
@@ -142,13 +139,13 @@ function AdminPanel() {
         });
     };
 }
+```
 
-=====================================================
-DISPLAYING POINTS IN UI
-=====================================================
+## Displaying Points in UI
 
-Use the usePoints hook anywhere:
+Use the `usePoints` hook anywhere:
 
+```typescript
 import { usePoints } from '@/hooks/usePoints';
 
 function MyComponent() {
@@ -170,5 +167,4 @@ function MyComponent() {
         </div>
     );
 }
-
-*/
+```
