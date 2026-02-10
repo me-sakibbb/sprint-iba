@@ -197,7 +197,10 @@ BEGIN
     VALUES (v_user_id, v_completion_bonus, 'exam_complete', v_bonus_metadata);
 
     IF v_score_bonus > 0 THEN
-        INSERT INTO velocity_points (user_id, amount, reason,
+        INSERT INTO velocity_points (user_id, amount, reason, metadata)
+        VALUES (
+            v_user_id,
+            v_score_bonus,
             CASE WHEN v_score = v_total_questions THEN 'perfect_score' ELSE 'high_score' END,
             v_bonus_metadata
         );
