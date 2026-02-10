@@ -80,39 +80,35 @@ function PracticePage() {
 EXAM COMPLETION INTEGRATION EXAMPLE
 =====================================================
 
-In your exam results handler:
+Exams should be submitted via the secure RPC function 'submit_exam_attempt'.
+This handles scoring, updates, and point awarding on the server side.
 
-import { awardExamCompletionBonus, calculateExamPercentile } from '@/services/examPointsService';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 function ExamResultsPage() {
     const { user } = useAuth();
     
-    const handleExamSubmit = async (examId: string, score: number, totalQuestions: number) => {
+    const handleExamSubmit = async (attemptId: string, answers: Record<string, string>) => {
         if (!user) return;
         
-        // Calculate user's percentile rank
-        const percentile = await calculateExamPercentile(examId, score);
+        // Secure submission via RPC
+        const { data: result, error } = await supabase.rpc('submit_exam_attempt', {
+            p_attempt_id: attemptId,
+            p_answers: answers
+        });
         
-        // Award exam bonuses
-        const result = await awardExamCompletionBonus(
-            user.id,
-            examId,
-            score,
-            totalQuestions,
-            percentile
-        );
+        if (error) {
+            toast.error(error.message);
+            return;
+        }
         
         // Show result message
-        let message = `Exam Complete! +${result.completionBonus} VP`;
+        let message = `Exam Complete! +${result.points_awarded} VP`;
         
-        if (result.scoreBonus > 0) {
-            if ((score / totalQuestions) * 100 === 100) {
-                message += `\n🏆 Perfect Score! +${result.scoreBonus} VP`;
-            } else if (percentile && percentile <= 10) {
-                message += `\n🌟 Top 10%! +${result.scoreBonus} VP`;
-            }
+        if (result.leveled_up) {
+            message += `\n🎉 Level Up! You are now Level ${result.new_level}!`;
         }
         
         toast.success(message, { duration: 5000 });

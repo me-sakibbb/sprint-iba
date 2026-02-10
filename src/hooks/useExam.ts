@@ -239,32 +239,21 @@ export function useExam() {
 
         setLoading(true);
         try {
-            // Calculate score
-            let score = 0;
-            state.questions.forEach(q => {
-                if (q.correct_answer === state.answers[q.id]) {
-                    score++;
-                }
+            // Securely submit attempt via RPC
+            const { data, error } = await supabase.rpc('submit_exam_attempt', {
+                p_attempt_id: state.attempt.id,
+                p_answers: state.answers
             });
 
-            // Update attempt
-            await supabase
-                .from('exam_attempts')
-                .update({
-                    answers: state.answers,
-                    score,
-                    submitted_at: new Date().toISOString(),
-                    is_submitted: true,
-                } as any)
-                .eq('id', state.attempt.id);
+            if (error) throw error;
 
-            // Update user_progress for each question
-            for (const q of state.questions) {
-                await supabase.from('user_progress').upsert({
-                    user_id: user?.id,
-                    question_id: q.id,
-                    is_correct: q.correct_answer === state.answers[q.id],
-                } as any, { onConflict: 'user_id,question_id' });
+            const result = data as any; // { score, total_questions, points_awarded, ... }
+
+            // If points were awarded, dispatch event for UI updates
+            if (result.points_awarded > 0) {
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('points-updated'));
+                }
             }
 
             setState(prev => ({
@@ -272,7 +261,7 @@ export function useExam() {
                 isSubmitted: true,
                 attempt: prev.attempt ? {
                     ...prev.attempt,
-                    score,
+                    score: result.score,
                     is_submitted: true,
                     submitted_at: new Date().toISOString(),
                 } : null,
@@ -286,7 +275,7 @@ export function useExam() {
         } finally {
             setLoading(false);
         }
-    }, [state, user, fetchExams]);
+    }, [state, fetchExams]);
 
     // Get leaderboard for an exam
     const getLeaderboard = useCallback(async (examId: string) => {
