@@ -28,7 +28,13 @@ export default function LevelBadge({
     className,
     locked = false,
 }: LevelBadgeProps) {
-    const trackTheme = TRACK_THEMES[level.track];
+    const trackTheme = TRACK_THEMES[level.track] || {
+        primary: level.color || '#3b82f6',
+        secondary: level.color || '#3b82f6',
+        accent: level.color || '#3b82f6',
+        gradient: level.color ? `linear-gradient(135deg, ${level.color} 0%, ${level.color} 100%)` : 'linear-gradient(135deg, #3b82f6 0%, #3b82f6 100%)',
+        name: level.name
+    };
 
     return (
         <div className={cn('flex flex-col items-center gap-2', className)}>

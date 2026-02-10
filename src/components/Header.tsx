@@ -26,8 +26,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import { useVelocityPoints } from "@/hooks/useVelocityPoints";
+import { usePoints } from "@/hooks/usePoints";
 import LevelBadge from "@/components/badges/LevelBadge";
-import { formatVPFull } from "@/utils/vpCalculations";
+import { formatVPFull } from "@/utils/pointCalculations";
 import { Zap } from "lucide-react";
 
 const Header = () => {
@@ -41,12 +42,17 @@ const Header = () => {
         totalVp,
         currentLevel,
         loading: loadingVP,
-    } = useVelocityPoints();
+        loginStreak,
+        practiceStreak,
+    } = usePoints();
 
     const handleSignOut = async () => {
         await signOut();
         router.push("/auth");
     };
+
+    // Use the max streak for display
+    const displayStreak = Math.max(loginStreak, practiceStreak);
 
     return (
         <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
@@ -119,12 +125,12 @@ const Header = () => {
                         </div>
 
                         {/* Streak */}
-                        <div className="flex items-center gap-2" title="Daily Streak">
+                        <div className="flex items-center gap-2" title={`Login: ${loginStreak} | Practice: ${practiceStreak}`}>
                             <div className="w-8 h-8 rounded-full bg-orange-500/10 flex items-center justify-center">
                                 <Zap className="w-4 h-4 text-orange-500 fill-orange-500" />
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-sm font-bold leading-none">7</span>
+                                <span className="text-sm font-bold leading-none">{displayStreak}</span>
                                 <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">Day Streak</span>
                             </div>
                         </div>

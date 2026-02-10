@@ -17,6 +17,7 @@ import { formatVPFull } from "@/utils/vpCalculations";
 import { User, Mail, School, Calendar, Phone, LogOut, Heart, MessageCircle, Trash2, Trophy, Zap } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
+import StreakStatsCard from "@/components/profile/StreakStatsCard";
 
 interface Post {
     id: string;
@@ -320,7 +321,10 @@ const Profile = () => {
                         </div>
 
                         <div className="md:col-span-1">
-                            <ProfileActivity />
+                            <div className="space-y-6">
+                                <StreakStatsCard />
+                                <ProfileActivity />
+                            </div>
                         </div>
                     </div>
                 )}

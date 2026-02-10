@@ -12,6 +12,7 @@ export interface LevelDefinition {
     track: Track;
     trackColor: string;
     badgeImageUrl: string;
+    color?: string; // Dynamic level color from DB
 }
 
 export interface UserLevel {

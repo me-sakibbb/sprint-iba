@@ -9,7 +9,9 @@ import {
     Clock,
     ArrowRight,
     CheckCircle,
-    Flag
+    Flag,
+    Sparkles,
+    AlertCircle
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { MarkdownText } from "@/components/MarkdownText";
@@ -28,6 +30,7 @@ interface PracticeSessionProps {
     onTimeUp: () => void;
     setTimeRemaining: (time: number | null) => void;
     timePerQuestion: number;
+    feedbackMode: 'immediate' | 'deferred';
 }
 
 export default function PracticeSession({
@@ -41,11 +44,32 @@ export default function PracticeSession({
     onComplete,
     onTimeUp,
     setTimeRemaining,
-    timePerQuestion
+    timePerQuestion,
+    feedbackMode
 }: PracticeSessionProps) {
     const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
     const [hasAnswered, setHasAnswered] = useState(false);
     const [startTime, setStartTime] = useState(Date.now());
+
+    // Helper to check answer correctness (matches Label, Option Text, or Index)
+    const isCorrect = useCallback((answerLabel: string, optionText?: string, optionIndex?: number) => {
+        if (!question.correct_answer) return false;
+        const correct = String(question.correct_answer).trim().toLowerCase();
+
+        // 1. Check Label (A, B, C...)
+        if (String(answerLabel).trim().toLowerCase() === correct) return true;
+
+        // 2. Check Option Text
+        if (optionText && String(optionText).trim().toLowerCase() === correct) return true;
+
+        // 3. Check Index (0, 1, 2... or 1, 2, 3...)
+        if (typeof optionIndex === 'number') {
+            // Check 0-based index
+            if (String(optionIndex) === correct) return true;
+        }
+
+        return false;
+    }, [question.correct_answer]);
 
     // Timer for timed mode
     useEffect(() => {
@@ -71,7 +95,8 @@ export default function PracticeSession({
         if (mode === 'timed') {
             setTimeRemaining(timePerQuestion);
         }
-    }, [question.id, mode, timePerQuestion, setTimeRemaining]);
+        // Only reset when question ID changes
+    }, [question.id]);
 
     const handleSelectAnswer = (answer: string) => {
         if (hasAnswered) return;
@@ -81,14 +106,16 @@ export default function PracticeSession({
         onAnswer(answer, timeTaken);
         setHasAnswered(true);
 
-        // Auto-advance after a short delay
-        setTimeout(() => {
-            if (questionNumber >= totalQuestions) {
-                onComplete();
-            } else {
-                onNext();
-            }
-        }, 800);
+        // Auto-advance after a short delay only if NOT in immediate mode
+        if (feedbackMode === 'deferred') {
+            setTimeout(() => {
+                if (questionNumber >= totalQuestions) {
+                    onComplete();
+                } else {
+                    onNext();
+                }
+            }, 800);
+        }
     };
 
     const handleNext = () => {
@@ -175,21 +202,46 @@ export default function PracticeSession({
                     const label = optionLabels[index];
                     const isSelected = selectedAnswer === label;
 
+                    // Determine styling based on state and feedback mode
+                    let borderClass = 'border-border hover:border-primary/50';
+                    let bgClass = 'bg-background';
+                    let labelBgClass = 'bg-muted';
+                    let labelTextClass = '';
+
+                    if (hasAnswered) {
+                        if (feedbackMode === 'immediate') {
+                            if (isCorrect(label, option, index)) {
+                                borderClass = 'border-green-500 bg-green-500/10';
+                                labelBgClass = 'bg-green-500';
+                                labelTextClass = 'text-white';
+                            } else if (isSelected) {
+                                borderClass = 'border-red-500 bg-red-500/10';
+                                labelBgClass = 'bg-red-500';
+                                labelTextClass = 'text-white';
+                            }
+                        } else {
+                            // Deferred mode - just show selection
+                            if (isSelected) {
+                                borderClass = 'border-primary bg-primary/5';
+                                labelBgClass = 'bg-primary';
+                                labelTextClass = 'text-primary-foreground';
+                            }
+                        }
+                    } else if (isSelected) {
+                        borderClass = 'border-primary bg-primary/5';
+                        labelBgClass = 'bg-primary';
+                        labelTextClass = 'text-primary-foreground';
+                    }
+
                     return (
                         <button
                             key={index}
                             onClick={() => handleSelectAnswer(label)}
                             disabled={hasAnswered}
-                            className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-4 ${isSelected
-                                ? 'border-primary bg-primary/5'
-                                : 'border-border hover:border-primary/50'
-                                } ${hasAnswered ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
+                            className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-4 ${borderClass} ${bgClass} ${hasAnswered ? 'cursor-not-allowed opacity-70' : 'cursor-pointer'}`}
                         >
                             <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${isSelected
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'bg-muted'
-                                    }`}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${labelBgClass} ${labelTextClass}`}
                             >
                                 {label}
                             </div>
@@ -201,23 +253,48 @@ export default function PracticeSession({
                 })}
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-4">
-                {!hasAnswered ? (
-                    <Button
-                        variant="ghost"
-                        onClick={handleNext}
-                        className="flex-1 h-12 text-muted-foreground hover:text-primary"
-                    >
-                        Skip Question
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                ) : (
-                    <div className="flex-1 h-12 flex items-center justify-center text-primary font-medium animate-pulse">
-                        <CheckCircle className="w-5 h-5 mr-2" />
-                        Recording answer...
+            {/* Actions & Explanation */}
+            <div className="space-y-6">
+                {/* Explanation (Immediate Mode) */}
+                {hasAnswered && feedbackMode === 'immediate' && question.explanation && (
+                    <div className="p-6 rounded-xl bg-primary/5 border border-primary/20 animate-fade-in">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Sparkles className="w-5 h-5 text-primary" />
+                            <h4 className="font-semibold text-lg">AI Explanation</h4>
+                        </div>
+                        <div className="text-muted-foreground leading-relaxed">
+                            <MarkdownText text={question.explanation} />
+                        </div>
                     </div>
                 )}
+
+                <div className="flex gap-4">
+                    {!hasAnswered ? (
+                        <Button
+                            variant="ghost"
+                            onClick={handleNext}
+                            className="flex-1 h-12 text-muted-foreground hover:text-primary"
+                        >
+                            Skip Question
+                            <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                    ) : (
+                        feedbackMode === 'immediate' ? (
+                            <Button
+                                onClick={handleNext}
+                                className="flex-1 h-12 gradient-primary animate-in fade-in zoom-in duration-300"
+                            >
+                                {questionNumber >= totalQuestions ? "Finish Practice" : "Next Question"}
+                                <ArrowRight className="w-5 h-5 ml-2" />
+                            </Button>
+                        ) : (
+                            <div className="flex-1 h-12 flex items-center justify-center text-primary font-medium animate-pulse">
+                                <CheckCircle className="w-5 h-5 mr-2" />
+                                Recording answer...
+                            </div>
+                        )
+                    )}
+                </div>
             </div>
         </div>
     );

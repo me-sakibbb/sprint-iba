@@ -256,6 +256,13 @@ FOR EACH VALID MCQ:
 5. Set has_image: true if the question references an image.
 6. Identify the general topic and subtopic (we'll map to taxonomy later).
 
+DIFFICULTY ASSESSMENT (CRITICAL):
+Assess the difficulty of each question as "Easy", "Medium", or "Hard" based on the following criteria:
+- **Easy**: Direct recall of facts, basic definitions, simple one-step calculations, or identifying simple patterns.
+- **Medium**: Application of concepts to standard problems, two-step reasoning, comparing two concepts, or standard textbook exercises.
+- **Hard**: Complex application, multi-step analysis or calculations, edge cases, synthesis of multiple concepts, trick questions, or requiring deep understanding.
+*Aim for a realistic distribution if possible, do not default everything to Medium.*
+
 OUTPUT FORMAT (JSON array only):
 [{
   "question_text_formatted": "What is the value of $x$ in **this quadratic equation**: $x^2 + 5x + 6 = 0$?",
@@ -272,7 +279,7 @@ OUTPUT FORMAT (JSON array only):
   "topic_id": "uuid-of-algebra",
   "subtopic_id": "uuid-of-quadratic-equations",
   "explanation_formatted": "To solve $x^2 + 5x + 6 = 0$, we factor: $(x + 2)(x + 3) = 0$. Therefore, $x = -2$ or $x = -3$. The other options don't satisfy the equation.",
-  "difficulty": "medium",
+  "difficulty": "Easy",
   "has_image": true,
   "image_description": "A graph of a parabola opening upwards.",
   "image_bbox": [100, 200, 400, 800],

@@ -1,7 +1,13 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Tables } from '@/integrations/supabase/types';
+import { awardPracticeAnswerPoints, awardSessionCompletionBonus } from '@/services/practicePointsService';
+import { toast } from 'sonner';
+import { checkIsCorrect } from '@/utils/answerValidation';
+import { ensureNonNegative } from '@/utils/pointCalculations';
+import { getUserStreak, updateLoginStreak, getStreakStats } from '@/services/streakService';
 
 type Question = Tables<'questions'>;
 type PracticeSession = Tables<'practice_sessions'>;
@@ -12,6 +18,7 @@ interface PracticeConfig {
     subjects: string[];
     questionCount: number;
     practiceMode?: 'normal' | 'mistakes'; // New: practice normal questions or mistakes only
+    feedbackMode?: 'immediate' | 'deferred'; // Show answers immediately or at the end
 }
 
 interface PracticeState {
@@ -21,6 +28,8 @@ interface PracticeState {
     answers: Record<string, string>; // questionId -> answer
     timeRemaining: number | null;
     isComplete: boolean;
+    feedbackMode: 'immediate' | 'deferred';
+    totalVpEarned: number; // Track VP during session
 }
 
 export function usePractice() {
@@ -34,6 +43,8 @@ export function usePractice() {
         answers: {},
         timeRemaining: null,
         isComplete: false,
+        feedbackMode: 'deferred',
+        totalVpEarned: 0,
     });
 
     // Fetch available topics grouped by subject
@@ -93,7 +104,7 @@ export function usePractice() {
                 let mistakeStats: any[] = [];
 
                 if (rpcError) {
-                    console.error(`RPC Error for user ${user.id}, falling back to direct query:`, rpcError);
+                    console.error(`RPC Error for user ${user.id}, falling back to direct query: `, rpcError);
                     // Fallback: Get all unique question IDs from mistake_logs
                     const { data: directMistakes, error: directError } = await supabase
                         .from('mistake_logs')
@@ -131,7 +142,7 @@ export function usePractice() {
                         const subtopics = config.subjects.filter(s => !['Math', 'English', 'Analytical', 'Overall'].includes(s));
 
                         if (subjects.length > 0 && subtopics.length > 0) {
-                            query = query.or(`topic.in.(${subjects.join(',')}),subtopic.in.(${subtopics.join(',')})`);
+                            query = query.or(`topic.in.(${subjects.join(',')}), subtopic.in.(${subtopics.join(',')})`);
                         } else if (subjects.length > 0) {
                             query = query.in('topic', subjects);
                         } else if (subtopics.length > 0) {
@@ -176,7 +187,7 @@ export function usePractice() {
                     const subtopics = config.subjects.filter(s => !['Math', 'English', 'Analytical', 'Overall'].includes(s));
 
                     if (subjects.length > 0 && subtopics.length > 0) {
-                        query = query.or(`topic.in.(${subjects.join(',')}),subtopic.in.(${subtopics.join(',')})`);
+                        query = query.or(`topic.in.(${subjects.join(',')}), subtopic.in.(${subtopics.join(',')})`);
                     } else if (subjects.length > 0) {
                         query = query.in('topic', subjects);
                     } else if (subtopics.length > 0) {
@@ -223,6 +234,8 @@ export function usePractice() {
                 answers: {},
                 timeRemaining: config.mode === 'timed' ? config.timePerQuestion || 60 : null,
                 isComplete: false,
+                feedbackMode: config.feedbackMode || 'deferred',
+                totalVpEarned: 0,
             });
 
         } catch (err: any) {
@@ -237,7 +250,7 @@ export function usePractice() {
         if (!state.session || !user) return;
 
         const currentQuestion = state.questions[state.currentIndex];
-        const isCorrect = currentQuestion.correct_answer === answer;
+        const isCorrect = checkIsCorrect(currentQuestion.correct_answer, answer, currentQuestion.options);
 
         // Save to practice_answers
         await supabase.from('practice_answers').insert({
@@ -277,6 +290,41 @@ export function usePractice() {
 
         if (progressError) {
             console.error('Error updating user progress:', progressError);
+        }
+
+        // Award points for the answer
+        try {
+            const result = await awardPracticeAnswerPoints(
+                user.id,
+                currentQuestion.id,
+                answer,
+                currentQuestion.correct_answer || '',
+                currentQuestion.options,
+                currentQuestion.difficulty as 'easy' | 'medium' | 'hard' | null,
+                timeTaken,
+                state.session.time_per_question || undefined
+            );
+
+            // Track VP earned during session
+            setState(prev => ({
+                ...prev,
+                totalVpEarned: prev.totalVpEarned + result.vpAwarded,
+            }));
+
+            // Show toast notification ONLY in immediate feedback mode
+            if (state.feedbackMode === 'immediate') {
+                if (result.isCorrect) {
+                    let message = `Correct! + ${result.vpAwarded} VP`;
+                    if (result.speedBonus && result.speedBonus > 0) {
+                        message += ` (+${result.speedBonus} speed bonus)`;
+                    }
+                    toast.success(message);
+                } else if (result.vpAwarded !== 0) {
+                    toast.error(`Wrong answer.${result.vpAwarded} VP`);
+                }
+            }
+        } catch (error) {
+            console.error('Error awarding points:', error);
         }
 
         // Update local state
@@ -323,6 +371,47 @@ export function usePractice() {
             } as any)
             .eq('id', state.session.id);
 
+        // Award session completion bonus and update practice streak
+        if (user) {
+            try {
+                const bonusResult = await awardSessionCompletionBonus(
+                    user.id,
+                    state.session.id,
+                    correctCount,
+                    state.questions.length
+                );
+
+                // Show completion message with bonuses
+                // Calculate total VP including bonuses and answers
+                const totalVP = state.totalVpEarned + bonusResult.sessionBonus + bonusResult.perfectBonus + bonusResult.highScoreBonus + bonusResult.streakBonus;
+
+                // Show completion message
+                let bonusMessage: string;
+
+                if (state.feedbackMode === 'deferred') {
+                    // Show total VP earned in deferred mode
+                    bonusMessage = `Session Complete! Total VP: ${totalVP > 0 ? '+' : ''}${totalVP} `;
+                } else {
+                    // Show only bonuses in immediate mode (answers already shown)
+                    bonusMessage = `Session Complete! Bonuses: +${bonusResult.sessionBonus + bonusResult.perfectBonus + bonusResult.highScoreBonus} VP`;
+                }
+
+                if (bonusResult.perfectBonus > 0) {
+                    bonusMessage += `\n🎉 Perfect Score! + ${bonusResult.perfectBonus} VP`;
+                } else if (bonusResult.highScoreBonus > 0) {
+                    bonusMessage += `\n⭐ High Score! + ${bonusResult.highScoreBonus} VP`;
+                }
+
+                if (bonusResult.streakBonus > 0) {
+                    bonusMessage += `\n🔥 ${bonusResult.streakCount} Day Practice Streak! + ${bonusResult.streakBonus} VP`;
+                }
+
+                toast.success(bonusMessage, { duration: 5000 });
+            } catch (error) {
+                console.error('Error awarding session bonus:', error);
+            }
+        }
+
         setState(prev => ({
             ...prev,
             isComplete: true,
@@ -340,6 +429,8 @@ export function usePractice() {
             answers: {},
             timeRemaining: null,
             isComplete: false,
+            feedbackMode: 'deferred',
+            totalVpEarned: 0,
         });
     }, []);
 
@@ -354,6 +445,8 @@ export function usePractice() {
         answers: state.answers,
         timeRemaining: state.timeRemaining,
         isComplete: state.isComplete,
+        feedbackMode: state.feedbackMode,
+        totalVpEarned: state.totalVpEarned,
         startSession,
         submitAnswer,
         nextQuestion,

@@ -23,6 +23,8 @@ const navItems = [
     { href: "/admin/practice", label: "Practice", icon: Brain },
     { href: "/admin/exams", label: "Exams", icon: Trophy },
     { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/admin/level-config", label: "Level Config", icon: Trophy },
+    { href: "/admin/point-config", label: "Points Config", icon: Settings },
     { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
