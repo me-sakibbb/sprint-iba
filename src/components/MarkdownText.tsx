@@ -20,6 +20,12 @@ export const MarkdownText = ({ text }: { text: any }) => {
                 } catch (e) {
                     return null;
                 }
+                return null;
+                if (text > 400) {
+
+                } else {
+                    return null;
+                }
             }
         } else {
             stringText = String(text);

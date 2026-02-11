@@ -10,6 +10,7 @@ export interface Subject {
     created_at: string;
     updated_at: string;
     question_count?: number;
+    child_count?: number;
     slug?: string;
 }
 
@@ -21,6 +22,7 @@ export interface Topic {
     created_at: string;
     updated_at: string;
     question_count?: number;
+    child_count?: number;
     slug?: string;
 }
 
@@ -46,8 +48,9 @@ const createSlug = (text: string, parentName?: string) => {
 
     if (parentName) {
         const parentSlug = parentName.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').trim();
-        if (slug.startsWith(parentSlug + '-')) {
-            slug = slug.substring(parentSlug.length + 1);
+        // Ensure slug starts with parent slug for uniqueness
+        if (!slug.startsWith(parentSlug + '-')) {
+            slug = `${parentSlug}-${slug}`;
         }
     }
     return slug;
@@ -61,9 +64,9 @@ export function useSubjects() {
     const fetchSubjects = useCallback(async () => {
         setLoading(true);
         try {
-            // Fetch root topics (subjects) from study_topics
+            // Fetch root topics (subjects) from study_topics view with counts
             const { data, error } = await supabase
-                .from('study_topics')
+                .from('study_topics_with_counts' as any)
                 .select('*')
                 .is('parent_id', null)
                 .order('sort_order', { ascending: true })
@@ -78,9 +81,9 @@ export function useSubjects() {
                 description: item.description,
                 created_at: item.created_at,
                 updated_at: item.updated_at || item.created_at,
-                slug: item.slug
-                // Note: question_count logic would need a more complex join or separate query
-                // For now, we omit it or would need a custom RPC/view if critical
+                slug: item.slug,
+                question_count: (item as any).question_count || 0,
+                child_count: (item as any).child_count || 0
             }));
 
             setSubjects(transformedSubjects);
@@ -186,8 +189,9 @@ export function useTopics(subjectId?: string) {
     const fetchTopics = useCallback(async () => {
         setLoading(true);
         try {
+            // Fetch topics from view with counts
             let query = supabase
-                .from('study_topics')
+                .from('study_topics_with_counts' as any)
                 .select('*')
                 .order('sort_order', { ascending: true })
                 .order('title', { ascending: true });
@@ -219,7 +223,9 @@ export function useTopics(subjectId?: string) {
                 description: item.description,
                 created_at: item.created_at,
                 updated_at: item.updated_at || item.created_at,
-                slug: item.slug
+                slug: item.slug,
+                question_count: (item as any).question_count || 0,
+                child_count: (item as any).child_count || 0
             }));
 
             setTopics(transformedTopics);
@@ -331,7 +337,7 @@ export function useSubtopics(topicId?: string) {
             }
 
             const { data, error } = await supabase
-                .from('study_topics')
+                .from('study_topics_with_counts' as any)
                 .select('*')
                 .eq('parent_id', topicId)
                 .order('sort_order', { ascending: true })
@@ -346,7 +352,8 @@ export function useSubtopics(topicId?: string) {
                 description: item.description,
                 created_at: item.created_at,
                 updated_at: item.updated_at || item.created_at,
-                slug: item.slug
+                slug: item.slug,
+                question_count: (item as any).question_count || 0
             }));
 
             setSubtopics(transformedSubtopics);

@@ -1,758 +1,612 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+﻿export type Json =
+    | string
+    | number
+    | boolean
+    | null
+    | { [key: string]: Json | undefined }
+    | Json[]
 
-export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
-  }
-  public: {
-    Tables: {
-      questions: {
-        Row: {
-          id: string
-          created_at: string
-          question_text: string
-          options: string[] | null
-          correct_answer: string | null
-          explanation: string | null
-          subject: string | null
-          unit_id: string | null
-          difficulty: string | null
-          subtopic: string | null
-          topic: string | null
-          image_url: string | null
-          is_verified: boolean | null
-          passage_id: string | null
-          question_text_formatted: string | null
-          options_formatted: string[] | null
-          explanation_formatted: string | null
+export interface Database {
+    public: {
+        Tables: {
+            ai_feedback_cache: {
+                Row: {
+                    action_plan: string | null
+                    created_at: string
+                    expires_at: string
+                    feedback_text: string
+                    feedback_type: string
+                    id: string
+                    learning_gaps: string | null
+                    mistake_count: number
+                    pattern_analysis: string | null
+                    practice_focus: string | null
+                    root_causes: string | null
+                    scope_value: string | null
+                    user_id: string
+                }
+                Insert: {
+                    action_plan?: string | null
+                    created_at?: string
+                    expires_at: string
+                    feedback_text: string
+                    feedback_type: string
+                    id?: string
+                    learning_gaps?: string | null
+                    mistake_count: number
+                    pattern_analysis?: string | null
+                    practice_focus?: string | null
+                    root_causes?: string | null
+                    scope_value?: string | null
+                    user_id: string
+                }
+                Update: {
+                    action_plan?: string | null
+                    created_at?: string
+                    expires_at?: string
+                    feedback_text?: string
+                    feedback_type?: string
+                    id?: string
+                    learning_gaps?: string | null
+                    mistake_count?: number
+                    pattern_analysis?: string | null
+                    practice_focus?: string | null
+                    root_causes?: string | null
+                    scope_value?: string | null
+                    user_id?: string
+                }
+                Relationships: []
+            }
+            exam_attempts: {
+                Row: {
+                    answers: Json
+                    completed_at: string | null
+                    created_at: string
+                    exam_id: string
+                    id: string
+                    is_submitted: boolean
+                    score: number
+                    total_questions: number
+                    user_id: string
+                }
+                Insert: {
+                    answers?: Json
+                    completed_at?: string | null
+                    created_at?: string
+                    exam_id: string
+                    id?: string
+                    is_submitted?: boolean
+                    score?: number
+                    total_questions: number
+                    user_id: string
+                }
+                Update: {
+                    answers?: Json
+                    completed_at?: string | null
+                    created_at?: string
+                    exam_id?: string
+                    id?: string
+                    is_submitted?: boolean
+                    score?: number
+                    total_questions?: number
+                    user_id?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "exam_attempts_exam_id_fkey"
+                        columns: ["exam_id"]
+                        isOneToOne: false
+                        referencedRelation: "exams"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            exams: {
+                Row: {
+                    allow_retake: boolean
+                    created_at: string
+                    created_by: string | null
+                    description: string | null
+                    duration_minutes: number
+                    end_time: string | null
+                    id: string
+                    is_published: boolean
+                    question_ids: string[] | null
+                    show_leaderboard: boolean
+                    show_results_immediately: boolean
+                    show_topic_breakdown: boolean
+                    start_time: string | null
+                    title: string
+                    type: string
+                }
+                Insert: {
+                    allow_retake?: boolean
+                    created_at?: string
+                    created_by?: string | null
+                    description?: string | null
+                    duration_minutes: number
+                    end_time?: string | null
+                    id?: string
+                    is_published?: boolean
+                    question_ids?: string[] | null
+                    show_leaderboard?: boolean
+                    show_results_immediately?: boolean
+                    show_topic_breakdown?: boolean
+                    start_time?: string | null
+                    title: string
+                    type: string
+                }
+                Update: {
+                    allow_retake?: boolean
+                    created_at?: string
+                    created_by?: string | null
+                    description?: string | null
+                    duration_minutes?: number
+                    end_time?: string | null
+                    id?: string
+                    is_published?: boolean
+                    question_ids?: string[] | null
+                    show_leaderboard?: boolean
+                    show_results_immediately?: boolean
+                    show_topic_breakdown?: boolean
+                    start_time?: string | null
+                    title?: string
+                    type?: string
+                }
+                Relationships: []
+            }
+            mistake_logs: {
+                Row: {
+                    id: string
+                    user_id: string
+                    question_id: string
+                    user_answer: string | null
+                    correct_answer: string
+                    context: string
+                    session_id: string | null
+                    time_taken_seconds: number | null
+                    topic: string | null
+                    subtopic: string | null
+                    difficulty: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    question_id: string
+                    user_answer?: string | null
+                    correct_answer: string
+                    context: string
+                    session_id?: string | null
+                    time_taken_seconds?: number | null
+                    topic?: string | null
+                    subtopic?: string | null
+                    difficulty?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    question_id?: string
+                    user_answer?: string | null
+                    correct_answer?: string
+                    context?: string
+                    session_id?: string | null
+                    time_taken_seconds?: number | null
+                    topic?: string | null
+                    subtopic?: string | null
+                    difficulty?: string | null
+                    created_at?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "mistake_logs_question_id_fkey"
+                        columns: ["question_id"]
+                        isOneToOne: false
+                        referencedRelation: "questions"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            mistake_stats: {
+                Row: {
+                    user_id: string | null
+                    question_id: string | null
+                    mistake_count: number | null
+                    correct_after_last_mistake: number | null
+                    last_mistake_at: string | null
+                    severity_level: string | null
+                    severity_score: number | null
+                }
+                Insert: {
+                    user_id?: string | null
+                    question_id?: string | null
+                    mistake_count?: number | null
+                    correct_after_last_mistake?: number | null
+                    last_mistake_at?: string | null
+                    severity_level?: string | null
+                    severity_score?: number | null
+                }
+                Update: {
+                    user_id?: string | null
+                    question_id?: string | null
+                    mistake_count?: number | null
+                    correct_after_last_mistake?: number | null
+                    last_mistake_at?: string | null
+                    severity_level?: string | null
+                    severity_score?: number | null
+                }
+                Relationships: []
+            }
+            practice_sessions: {
+                Row: {
+                    id: string
+                    user_id: string
+                    mode: string
+                    time_per_question: number | null
+                    subjects: string[]
+                    total_questions: number
+                    correct_count: number
+                    started_at: string
+                    completed_at: string | null
+                }
+                Insert: {
+                    id?: string
+                    user_id: string
+                    mode: string
+                    time_per_question?: number | null
+                    subjects: string[]
+                    total_questions: number
+                    correct_count?: number
+                    started_at?: string
+                    completed_at?: string | null
+                }
+                Update: {
+                    id?: string
+                    user_id?: string
+                    mode?: string
+                    time_per_question?: number | null
+                    subjects?: string[]
+                    total_questions?: number
+                    correct_count?: number
+                    started_at?: string
+                    completed_at?: string | null
+                }
+                Relationships: []
+            }
+            questions: {
+                Row: {
+                    id: string
+                    question_text: string
+                    options: Json
+                    correct_answer: string | null
+                    explanation: string | null
+                    difficulty: string | null
+                    topic: string | null
+                    subtopic: string | null
+                    image_url: string | null
+                    passage_id: string | null
+                    created_at: string
+                }
+                Insert: {
+                    id?: string
+                    question_text: string
+                    options: Json
+                    correct_answer?: string | null
+                    explanation?: string | null
+                    difficulty?: string | null
+                    topic?: string | null
+                    subtopic?: string | null
+                    image_url?: string | null
+                    passage_id?: string | null
+                    created_at?: string
+                }
+                Update: {
+                    id?: string
+                    question_text?: string
+                    options?: Json
+                    correct_answer?: string | null
+                    explanation?: string | null
+                    difficulty?: string | null
+                    topic?: string | null
+                    subtopic?: string | null
+                    image_url?: string | null
+                    passage_id?: string | null
+                    created_at?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "questions_passage_id_fkey"
+                        columns: ["passage_id"]
+                        isOneToOne: false
+                        referencedRelation: "reading_passages"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            reading_passages: {
+                Row: {
+                    content: string
+                    created_at: string
+                    id: string
+                    image_url: string | null
+                    title: string | null
+                }
+                Insert: {
+                    content: string
+                    created_at?: string
+                    id?: string
+                    image_url?: string | null
+                    title?: string | null
+                }
+                Update: {
+                    content?: string
+                    created_at?: string
+                    id?: string
+                    image_url?: string | null
+                    title?: string | null
+                }
+                Relationships: []
+            }
+            study_materials: {
+                Row: {
+                    content: string | null
+                    created_at: string
+                    id: string
+                    is_published: boolean
+                    sort_order: number | null
+                    study_topic_id: string
+                    title: string
+                    type: string | null
+                    updated_at: string
+                    url: string | null
+                }
+                Insert: {
+                    content?: string | null
+                    created_at?: string
+                    id?: string
+                    is_published?: boolean
+                    sort_order?: number | null
+                    study_topic_id: string
+                    title: string
+                    type?: string | null
+                    updated_at?: string
+                    url?: string | null
+                }
+                Update: {
+                    content?: string | null
+                    created_at?: string
+                    id?: string
+                    is_published?: boolean
+                    sort_order?: number | null
+                    study_topic_id?: string
+                    title?: string
+                    type?: string | null
+                    updated_at?: string
+                    url?: string | null
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "study_materials_study_topic_id_fkey"
+                        columns: ["study_topic_id"]
+                        isOneToOne: false
+                        referencedRelation: "study_topics"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            study_topics: {
+                Row: {
+                    color: string | null
+                    created_at: string
+                    description: string | null
+                    icon_name: string | null
+                    id: string
+                    is_published: boolean
+                    parent_id: string | null
+                    slug: string
+                    sort_order: number | null
+                    subtopic_name: string | null
+                    title: string
+                    topic_name: string | null
+                    updated_at: string
+                }
+                Insert: {
+                    color?: string | null
+                    created_at?: string
+                    description?: string | null
+                    icon_name?: string | null
+                    id?: string
+                    is_published?: boolean
+                    parent_id?: string | null
+                    slug: string
+                    sort_order?: number | null
+                    subtopic_name?: string | null
+                    title: string
+                    topic_name?: string | null
+                    updated_at?: string
+                }
+                Update: {
+                    color?: string | null
+                    created_at?: string
+                    description?: string | null
+                    icon_name?: string | null
+                    id?: string
+                    is_published?: boolean
+                    parent_id?: string | null
+                    slug?: string
+                    sort_order?: number | null
+                    subtopic_name?: string | null
+                    title?: string
+                    topic_name?: string | null
+                    updated_at?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "study_topics_parent_id_fkey"
+                        columns: ["parent_id"]
+                        isOneToOne: false
+                        referencedRelation: "study_topics"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
+            study_user_progress: {
+                Row: {
+                    id: string
+                    is_completed: boolean
+                    last_accessed_at: string
+                    materials_read: string[]
+                    practice_attempted: number
+                    practice_correct: number
+                    study_topic_id: string
+                    user_id: string
+                }
+                Insert: {
+                    id?: string
+                    is_completed?: boolean
+                    last_accessed_at?: string
+                    materials_read?: string[]
+                    practice_attempted?: number
+                    practice_correct?: number
+                    study_topic_id: string
+                    user_id: string
+                }
+                Update: {
+                    id?: string
+                    is_completed?: boolean
+                    last_accessed_at?: string
+                    materials_read?: string[]
+                    practice_attempted?: number
+                    practice_correct?: number
+                    study_topic_id?: string
+                    user_id?: string
+                }
+                Relationships: [
+                    {
+                        foreignKeyName: "study_user_progress_study_topic_id_fkey"
+                        columns: ["study_topic_id"]
+                        isOneToOne: false
+                        referencedRelation: "study_topics"
+                        referencedColumns: ["id"]
+                    }
+                ]
+            }
         }
-        Insert: {
-          id?: string
-          created_at?: string
-          question_text: string
-          options?: string[] | null
-          correct_answer?: string | null
-          explanation?: string | null
-          subject?: string | null
-          unit_id?: string | null
-          difficulty?: string | null
-          subtopic?: string | null
-          topic?: string | null
-          image_url?: string | null
-          is_verified?: boolean | null
-          passage_id?: string | null
+        Views: {
+            [_ in never]: never
         }
-        Update: {
-          id?: string
-          created_at?: string
-          question_text?: string
-          options?: string[] | null
-          correct_answer?: string | null
-          explanation?: string | null
-          subject?: string | null
-          unit_id?: string | null
-          difficulty?: string | null
-          subtopic?: string | null
-          topic?: string | null
-          image_url?: string | null
-          is_verified?: boolean | null
-          passage_id?: string | null
-          question_text_formatted?: string | null
-          options_formatted?: string[] | null
-          explanation_formatted?: string | null
+        Functions: {
+            submit_exam_attempt: {
+                Args: {
+                    p_attempt_id: string
+                    p_answers: Json
+                }
+                Returns: Json
+            }
+            get_high_priority_mistakes: {
+                Args: {
+                    p_user_id: string
+                    p_limit: number
+                    p_min_score: number
+                }
+                Returns: {
+                    question_id: string
+                    severity_level: string
+                    severity_score: number
+                    mistake_count: number
+                    correct_after_last_mistake: number
+                    last_mistake_at: string
+                }[]
+            }
         }
-        Relationships: []
-      }
-      question_images: {
-        Row: {
-          id: string
-          question_id: string
-          image_url: string
-          description: string | null
-          image_order: number
-          created_at: string
+        Enums: {
+            [_ in never]: never
         }
-        Insert: {
-          id?: string
-          question_id: string
-          image_url: string
-          description?: string | null
-          image_order?: number
-          created_at?: string
+        CompositeTypes: {
+            [_ in never]: never
         }
-        Update: {
-          id?: string
-          question_id?: string
-          image_url?: string
-          description?: string | null
-          image_order?: number
-          created_at?: string
-        }
-        Relationships: []
-      }
-      reading_passages: {
-        Row: {
-          id: string
-          content: string
-          image_url: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          content: string
-          image_url?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          content?: string
-          image_url?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      levels: {
-        Row: {
-          id: string
-          name: string
-          min_points: number
-          icon_url: string | null
-          description: string | null
-          created_at: string
-          updated_at: string
-          color: string | null
-          rank: number | null
-        }
-        Insert: {
-          id?: string
-          name: string
-          min_points?: number
-          icon_url?: string | null
-          description?: string | null
-          created_at?: string
-          updated_at?: string
-          color?: string | null
-          rank?: number | null
-        }
-        Update: {
-          id?: string
-          name?: string
-          min_points?: number
-          icon_url?: string | null
-          description?: string | null
-          created_at?: string
-          updated_at?: string
-          color?: string | null
-          rank?: number | null
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          email: string
-          full_name: string | null
-          id: string
-          updated_at: string
-          role: "user" | "operator"
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          email: string
-          full_name?: string | null
-          id: string
-          updated_at?: string
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          email?: string
-          full_name?: string | null
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      practice_sessions: {
-        Row: {
-          id: string
-          user_id: string
-          mode: 'timed' | 'untimed'
-          time_per_question: number | null
-          subjects: string[]
-          total_questions: number
-          correct_count: number
-          started_at: string
-          completed_at: string | null
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          mode: 'timed' | 'untimed'
-          time_per_question?: number | null
-          subjects?: string[]
-          total_questions?: number
-          correct_count?: number
-          started_at?: string
-          completed_at?: string | null
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          mode?: 'timed' | 'untimed'
-          time_per_question?: number | null
-          subjects?: string[]
-          total_questions?: number
-          correct_count?: number
-          started_at?: string
-          completed_at?: string | null
-        }
-        Relationships: []
-      }
-      practice_answers: {
-        Row: {
-          id: string
-          session_id: string
-          question_id: string
-          user_answer: string | null
-          is_correct: boolean
-          time_taken_seconds: number | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          session_id: string
-          question_id: string
-          user_answer?: string | null
-          is_correct?: boolean
-          time_taken_seconds?: number | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          session_id?: string
-          question_id?: string
-          user_answer?: string | null
-          is_correct?: boolean
-          time_taken_seconds?: number | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      exams: {
-        Row: {
-          id: string
-          title: string
-          description: string | null
-          type: 'mock' | 'live'
-          question_ids: string[]
-          duration_minutes: number
-          start_time: string | null
-          end_time: string | null
-          allow_retake: boolean
-          show_results_immediately: boolean
-          show_leaderboard: boolean
-          show_topic_breakdown: boolean
-          is_published: boolean
-          created_by: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          title: string
-          description?: string | null
-          type: 'mock' | 'live'
-          question_ids?: string[]
-          duration_minutes?: number
-          start_time?: string | null
-          end_time?: string | null
-          allow_retake?: boolean
-          show_results_immediately?: boolean
-          show_leaderboard?: boolean
-          show_topic_breakdown?: boolean
-          is_published?: boolean
-          created_by?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
-          description?: string | null
-          type?: 'mock' | 'live'
-          question_ids?: string[]
-          duration_minutes?: number
-          start_time?: string | null
-          end_time?: string | null
-          allow_retake?: boolean
-          show_results_immediately?: boolean
-          show_leaderboard?: boolean
-          show_topic_breakdown?: boolean
-          is_published?: boolean
-          created_by?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      exam_attempts: {
-        Row: {
-          id: string
-          exam_id: string
-          user_id: string
-          answers: Record<string, string>
-          score: number
-          total_questions: number
-          started_at: string
-          submitted_at: string | null
-          is_submitted: boolean
-        }
-        Insert: {
-          id?: string
-          exam_id: string
-          user_id: string
-          answers?: Record<string, string>
-          score?: number
-          total_questions?: number
-          started_at?: string
-          submitted_at?: string | null
-          is_submitted?: boolean
-        }
-        Update: {
-          id?: string
-          exam_id?: string
-          user_id?: string
-          answers?: Record<string, string>
-          score?: number
-          total_questions?: number
-          started_at?: string
-          submitted_at?: string | null
-          is_submitted?: boolean
-        }
-        Relationships: []
-      }
-      user_progress: {
-        Row: {
-          id: string
-          user_id: string
-          question_id: string
-          is_correct: boolean
-          answered_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          question_id: string
-          is_correct?: boolean
-          answered_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          question_id?: string
-          is_correct?: boolean
-          answered_at?: string
-        }
-        Relationships: []
-      }
-      mistake_logs: {
-        Row: {
-          id: string
-          user_id: string
-          question_id: string
-          user_answer: string | null
-          correct_answer: string
-          context: 'practice' | 'exam'
-          session_id: string | null
-          time_taken_seconds: number | null
-          topic: string | null
-          subtopic: string | null
-          difficulty: string | null
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          question_id: string
-          user_answer?: string | null
-          correct_answer: string
-          context: 'practice' | 'exam'
-          session_id?: string | null
-          time_taken_seconds?: number | null
-          topic?: string | null
-          subtopic?: string | null
-          difficulty?: string | null
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          question_id?: string
-          user_answer?: string | null
-          correct_answer?: string
-          context?: 'practice' | 'exam'
-          session_id?: string | null
-          time_taken_seconds?: number | null
-          topic?: string | null
-          subtopic?: string | null
-          difficulty?: string | null
-          created_at?: string
-        }
-        Relationships: []
-      }
-      ai_feedback_cache: {
-        Row: {
-          id: string
-          user_id: string
-          feedback_type: 'overall' | 'category' | 'subject'
-          scope_value: string | null
-          feedback_text: string
-          pattern_analysis: string | null
-          root_causes: string | null
-          learning_gaps: string | null
-          action_plan: string | null
-          practice_focus: string | null
-          mistake_count: number
-          created_at: string
-          expires_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          feedback_type: 'overall' | 'category' | 'subject'
-          scope_value?: string | null
-          feedback_text: string
-          pattern_analysis?: string | null
-          root_causes?: string | null
-          learning_gaps?: string | null
-          action_plan?: string | null
-          practice_focus?: string | null
-          mistake_count?: number
-          created_at?: string
-          expires_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          feedback_type?: 'overall' | 'category' | 'subject'
-          scope_value?: string | null
-          feedback_text?: string
-          pattern_analysis?: string | null
-          root_causes?: string | null
-          learning_gaps?: string | null
-          action_plan?: string | null
-          practice_focus?: string | null
-          mistake_count?: number
-          created_at?: string
-          expires_at?: string
-        }
-        Relationships: []
-      }
-      study_topics: {
-        Row: {
-          id: string
-          title: string
-          slug: string
-          description: string | null
-          icon_name: string | null
-          color: string | null
-          parent_id: string | null
-          topic_name: string | null
-          subtopic_name: string | null
-          sort_order: number
-          is_published: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          title: string
-          slug: string
-          description?: string | null
-          icon_name?: string | null
-          color?: string | null
-          parent_id?: string | null
-          topic_name?: string | null
-          subtopic_name?: string | null
-          sort_order?: number
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          title?: string
-          slug?: string
-          description?: string | null
-          icon_name?: string | null
-          color?: string | null
-          parent_id?: string | null
-          topic_name?: string | null
-          subtopic_name?: string | null
-          sort_order?: number
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      study_materials: {
-        Row: {
-          id: string
-          study_topic_id: string
-          title: string
-          content: string | null
-          type: 'note' | 'reading' | 'link' | 'video'
-          url: string | null
-          sort_order: number
-          is_published: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          study_topic_id: string
-          title: string
-          content?: string | null
-          type?: 'note' | 'reading' | 'link' | 'video'
-          url?: string | null
-          sort_order?: number
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          study_topic_id?: string
-          title?: string
-          content?: string | null
-          type?: 'note' | 'reading' | 'link' | 'video'
-          url?: string | null
-          sort_order?: number
-          is_published?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      study_user_progress: {
-        Row: {
-          id: string
-          user_id: string
-          study_topic_id: string
-          materials_read: string[]
-          practice_attempted: number
-          practice_correct: number
-          is_completed: boolean
-          last_accessed_at: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          study_topic_id: string
-          materials_read?: string[]
-          practice_attempted?: number
-          practice_correct?: number
-          is_completed?: boolean
-          last_accessed_at?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          study_topic_id?: string
-          materials_read?: string[]
-          practice_attempted?: number
-          practice_correct?: number
-          is_completed?: boolean
-          last_accessed_at?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      calculate_mistake_severity: {
-        Args: {
-          p_user_id: string
-          p_question_id: string
-        }
-        Returns: {
-          severity_level: string
-          severity_score: number
-          attempt_count: number
-          last_attempt: string
-        }[]
-      }
-      get_high_priority_mistakes: {
-        Args: {
-          p_user_id: string
-          p_limit: number
-        }
-        Returns: {
-          question_id: string
-          severity_level: string
-          severity_score: number
-          mistake_count: number
-          last_mistake_at: string
-        }[]
-      }
-      submit_exam_attempt: {
-        Args: {
-          p_attempt_id: string
-          p_answers: Record<string, string>
-        }
-        Returns: {
-          score: number
-          total_questions: number
-          points_awarded: number
-          streak_bonus: number
-        }
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
 }
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type PublicSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+    PublicTableNameOrOptions extends
+    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+    | { schema: keyof Database },
+    TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+        Database[PublicTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+    ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
+        Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+            Row: infer R
+        }
+    ? R
+    : never
+    : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
+        PublicSchema["Views"])
+    ? (PublicSchema["Tables"] &
+        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+            Row: infer R
+        }
+    ? R
+    : never
+    : never
 
 export type TablesInsert<
-  DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    PublicTableNameOrOptions extends
+    | keyof PublicSchema["Tables"]
+    | { schema: keyof Database },
+    TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+    ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+        Insert: infer I
+    }
+    ? I
+    : never
+    : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+        Insert: infer I
+    }
+    ? I
+    : never
+    : never
 
 export type TablesUpdate<
-  DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    PublicTableNameOrOptions extends
+    | keyof PublicSchema["Tables"]
+    | { schema: keyof Database },
+    TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = PublicTableNameOrOptions extends { schema: keyof Database }
+    ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+        Update: infer U
+    }
+    ? U
+    : never
+    : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
+    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+        Update: infer U
+    }
+    ? U
+    : never
+    : never
 
 export type Enums<
-  DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
-
-export type CompositeTypes<
-  PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
-  }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
-}
-  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
-
-export const Constants = {
-  public: {
-    Enums: {},
-  },
-} as const
+    PublicEnumNameOrOptions extends
+    | keyof PublicSchema["Enums"]
+    | { schema: keyof Database },
+    EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
+    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = PublicEnumNameOrOptions extends { schema: keyof Database }
+    ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
+    : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
+    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+    : never

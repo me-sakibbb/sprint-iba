@@ -233,7 +233,7 @@ export default function PracticeSession({
 
                     {/* Options */}
                     <div className="grid gap-3">
-                        {options.map((option, index) => {
+                        {(options as any[]).map((option: any, index: number) => {
                             const label = optionLabels[index];
                             const isSelected = selectedAnswer === label;
 

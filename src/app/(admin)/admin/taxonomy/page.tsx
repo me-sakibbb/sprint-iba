@@ -172,6 +172,7 @@ function SubjectsColumn({
                                 onUpdate={(updates) => onUpdate(subject.id, updates)}
                                 onDelete={() => onDelete(subject.id)}
                                 icon={<BookOpen className="w-3 h-3" />}
+                                childLabel="topics"
                             />
                         ))}
                     </div>
@@ -254,6 +255,7 @@ function TopicsColumn({
                                 onUpdate={(updates) => onUpdate(topic.id, updates)}
                                 onDelete={() => onDelete(topic.id)}
                                 icon={<Tag className="w-3 h-3" />}
+                                childLabel="subtopics"
                             />
                         ))}
                     </div>
@@ -349,6 +351,7 @@ function TaxonomyItem({
     onUpdate,
     onDelete,
     icon,
+    childLabel
 }: {
     item: Subject | Topic | Subtopic;
     isSelected: boolean;
@@ -356,9 +359,11 @@ function TaxonomyItem({
     onUpdate: (updates: any) => Promise<void>;
     onDelete: () => Promise<void>;
     icon: React.ReactNode;
+    childLabel?: string;
 }) {
     const [showDelete, setShowDelete] = useState(false);
     const questionCount = (item as any).question_count || 0;
+    const childCount = (item as any).child_count || 0;
 
     return (
         <>
@@ -378,17 +383,19 @@ function TaxonomyItem({
                             <h4 className="text-sm font-semibold text-slate-900 truncate">
                                 {item.name}
                             </h4>
-                            {item.description && (
-                                <p className="text-xs text-slate-500 truncate">{item.description}</p>
-                            )}
+                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                                {childLabel && (
+                                    <>
+                                        <span className="font-medium text-slate-700">{childCount}</span> {childLabel}
+                                        <span className="text-slate-300">•</span>
+                                    </>
+                                )}
+                                <span className="font-medium text-slate-700">{questionCount}</span> questions
+                            </div>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-1 shrink-0">
-                        <Badge variant="secondary" className="text-[10px]">
-                            {questionCount}
-                        </Badge>
-
                         <EditItemDialog
                             item={item}
                             onSubmit={onUpdate}

@@ -111,11 +111,11 @@ export function useMistakes() {
             const enrichedMistakes: MistakeWithQuestion[] = [];
 
             // Fetch all stats for these questions in one go from the view
-            const questionIds = Array.from(new Set(mistakeLogs?.map(log => log.question_id) || []));
-            const questions = mistakeLogs?.map(log => (log as any).questions as unknown as Question) || [];
+            const questionIds = Array.from(new Set((mistakeLogs as any[])?.map(log => log.question_id) || []));
+            const questionsArr = (mistakeLogs as any[])?.map(log => log.questions as unknown as Question) || [];
 
             // Fetch passages
-            const passageIds = Array.from(new Set(questions.map(q => q.passage_id).filter(id => !!id))) as string[];
+            const passageIds = Array.from(new Set(questionsArr.map(q => q.passage_id).filter(id => !!id))) as string[];
             const { data: passages } = await supabase
                 .from('reading_passages')
                 .select('*')
@@ -130,12 +130,14 @@ export function useMistakes() {
                 .in('question_id', questionIds);
 
             for (const log of mistakeLogs || []) {
-                const stats = (allStats as any[])?.find(s => s.question_id === log.question_id);
-                const question = (log as any).questions as unknown as Question;
+                const logAny = log as any;
+                const stats = (allStats as any[])?.find(s => s.question_id === logAny.question_id);
+                const question = logAny.questions as unknown as Question;
                 const passage = question.passage_id ? passageMap.get(question.passage_id) : null;
 
                 enrichedMistakes.push({
-                    ...log,
+                    ...logAny,
+                    context: logAny.context as 'practice' | 'exam',
                     question,
                     mistake_stats: stats as any as MistakeStat,
                     passage
@@ -223,13 +225,13 @@ export function useMistakes() {
                 critical: 0
             };
 
-            allMistakes?.forEach(mistake => {
+            (allMistakes as any[])?.forEach(mistake => {
                 if (mistake.topic) {
                     mistakesByTopic[mistake.topic] = (mistakesByTopic[mistake.topic] || 0) + 1;
                 }
             });
 
-            highPriority?.forEach(stat => {
+            (highPriority as any[])?.forEach(stat => {
                 mistakesBySeverity[stat.severity_level] = (mistakesBySeverity[stat.severity_level] || 0) + 1;
             });
 
@@ -307,7 +309,7 @@ export function useMistakes() {
 
         try {
             const highPriorityMistakes = await getHighPriorityMistakes(100);
-            let questionIds = highPriorityMistakes.map(m => m.question_id);
+            let questionIds = (highPriorityMistakes as any[]).map((m: any) => m.question_id);
 
             // Fetch full questions
             let query = supabase

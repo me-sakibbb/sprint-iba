@@ -51,7 +51,7 @@ export default function PracticeResults({
         const correct = String(q.correct_answer).trim().toLowerCase();
         const userLabel = String(answerLabel).trim().toLowerCase();
 
-        const options = q.options || [];
+        const options = (q.options as any[]) || [];
         const labels = ['A', 'B', 'C', 'D', 'E'];
         const userIndex = labels.findIndex(l => l.toLowerCase() === userLabel);
 
@@ -64,7 +64,7 @@ export default function PracticeResults({
             if (String(userIndex) === correct) return true;
 
             // Check Option Text
-            const userText = options[userIndex];
+            const userText = (options as any[])[userIndex];
             if (userText && String(userText).trim().toLowerCase() === correct) return true;
         }
 
@@ -246,7 +246,7 @@ export default function PracticeResults({
                                                 <div>
                                                     <h4 className="text-sm font-semibold mb-2">Options</h4>
                                                     <div className="space-y-2">
-                                                        {(question.options || []).map((option, optIndex) => {
+                                                        {(question.options as any[] || []).map((option: any, optIndex: number) => {
                                                             const label = ['A', 'B', 'C', 'D', 'E'][optIndex];
                                                             const isUserAnswer = userAnswer === label;
                                                             const isCorrectAnswer = checkIsCorrect(question, label);
