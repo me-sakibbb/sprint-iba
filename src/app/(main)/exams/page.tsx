@@ -35,6 +35,7 @@ export default function ExamsPage() {
         exam,
         attempt,
         questions,
+        passages,
         currentQuestion,
         currentIndex,
         answers,
@@ -61,6 +62,7 @@ export default function ExamsPage() {
             <ExamSession
                 exam={exam}
                 questions={questions}
+                passages={passages}
                 currentQuestion={currentQuestion}
                 currentIndex={currentIndex}
                 answers={answers}

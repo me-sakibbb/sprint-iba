@@ -25,6 +25,7 @@ export interface ExtractedQuestion {
     subject_id?: string | null; // UUID from taxonomy
     topic_id?: string | null; // UUID from taxonomy
     subtopic_id?: string | null; // UUID from taxonomy
+    passage_ref_id?: string | null; // Temporary ID to link to a passage in the same result set
     images?: Array<{
         url: string;
         description?: string;
@@ -32,6 +33,14 @@ export interface ExtractedQuestion {
         page_number?: number;
         order: number
     }>;
+}
+
+export interface ExtractedPassage {
+    id: string; // Temporary ID (e.g., "passage_1")
+    content: string;
+    has_image: boolean;
+    image_bbox?: number[];
+    image_page_number?: number;
 }
 
 export interface ExtractionProgress {
@@ -119,6 +128,10 @@ export function useQuestionExtraction() {
 
     // Upload file to Gemini API
     const uploadToGemini = async (blob: Blob, displayName: string, apiKey: string): Promise<string> => {
+        // Sanitize display name (only alphanumeric, underscores, hyphens, periods)
+        // Gemini API might be strict about this, or length limits
+        const safeDisplayName = displayName.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
+
         // Get upload URL
         const uploadUrlResponse = await fetch(
             `https://generativelanguage.googleapis.com/upload/v1beta/files?key=${apiKey}`,
@@ -131,11 +144,15 @@ export function useQuestionExtraction() {
                     'X-Goog-Upload-Header-Content-Type': 'application/pdf',
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ file: { display_name: displayName } })
+                body: JSON.stringify({ file: { display_name: safeDisplayName } })
             }
         );
 
-        if (!uploadUrlResponse.ok) throw new Error('Failed to get upload URL');
+        if (!uploadUrlResponse.ok) {
+            const errorText = await uploadUrlResponse.text();
+            console.error('Gemini Upload URL Error:', errorText);
+            throw new Error(`Failed to get upload URL: ${errorText}`);
+        }
         const uploadUrl = uploadUrlResponse.headers.get('X-Goog-Upload-URL');
         if (!uploadUrl) throw new Error('No upload URL returned');
 
@@ -175,16 +192,45 @@ export function useQuestionExtraction() {
         apiKey: string,
         fileName: string,
         model: string,
-        taxonomyContext?: string
-    ): Promise<{ questions: ExtractedQuestion[]; tokens: { total: number; prompt: number; completion: number } }> => {
+        taxonomyContext?: string,
+        taxonomyOverrides?: {
+            subject?: { id: string, title: string },
+            topic?: { id: string, title: string },
+            subtopic?: { id: string, title: string }
+        }
+    ): Promise<{ questions: ExtractedQuestion[]; passages: ExtractedPassage[]; tokens: { total: number; prompt: number; completion: number } }> => {
         const fileUri = await uploadToGemini(chunk.blob, `${fileName}_chunk_${chunk.index}`, apiKey);
         const pageCount = chunk.endPage - chunk.startPage + 1;
+
+        let overrideInstructions = "";
+        if (taxonomyOverrides) {
+            overrideInstructions = `
+CRITICAL TAXONOMY INSTRUCTIONS (USER OVERRIDES):
+The user has explicitely selected the following taxonomy for these questions. You MUST use these values/IDs for ALL extracted questions unless significantly contradictory (unlikely).
+`;
+            if (taxonomyOverrides.subject) {
+                overrideInstructions += `- STRICTLY ASSIGN "subject_id": "${taxonomyOverrides.subject.id}" and "topic": "${taxonomyOverrides.subject.title}" (as base)\n`;
+            }
+            if (taxonomyOverrides.topic) {
+                overrideInstructions += `- STRICTLY ASSIGN "topic_id": "${taxonomyOverrides.topic.id}" and "topic": "${taxonomyOverrides.topic.title}"\n`;
+            }
+            if (taxonomyOverrides.subtopic) {
+                overrideInstructions += `- STRICTLY ASSIGN "subtopic_id": "${taxonomyOverrides.subtopic.id}" and "subtopic": "${taxonomyOverrides.subtopic.title}"\n`;
+            }
+            overrideInstructions += `
+If a specific subtopic is NOT selected, please infer the most appropriate subtopic WITHIN the selected Subject/Topic.
+If a Subject is selected but Topic is NOT, infer the Topic within that Subject.
+`;
+        }
 
         const prompt = `You are an expert educational content extractor specializing in preserving formatting and mathematical expressions.
 
 CONTEXT:
 - This PDF chunk contains ${pageCount} pages (Pages ${chunk.startPage} to ${chunk.endPage} of the original document).
 - PDFs may contain BOTH questions AND answer explanations/solutions.
+- **READING COMPREHENSION**: passages followed by multiple questions are common.
+
+${overrideInstructions}
 
 TAXONOMY MAPPING (CRITICAL):
 ${taxonomyContext || 'No predefined taxonomy provided. Please identify topic and subtopic as strings.'}
@@ -202,6 +248,13 @@ CRITICAL RULES:
 4. SEPARATE questions from their answer explanations.
 5. DO NOT extract pure answer keys or solution walkthroughs as questions.
 6. A valid MCQ has: a question stem + labeled options (can be 2, 3, 4, or 5 options).
+
+READING COMPREHENSION (NEW):
+- If you find a reading passage, case study, or scenario that applies to MULTIPLE questions:
+  1. Extract the passage content into the "passages" array.
+  2. Assign it a unique "id" (e.g., "passage_1").
+  3. For each question belonging to this passage, set "passage_ref_id" to match the passage's "id".
+- If a question is standalone, "passage_ref_id" should be null.
 
 TEXT FORMATTING - PRESERVE ALL FORMATTING AS MARKDOWN:
 - **Bold text**: Use **text** for bold
@@ -231,30 +284,18 @@ OPTION HANDLING:
 - Store options as an array of strings.
 - Preserve formatting in each option using Markdown + LaTeX.
 
-IMAGE DETECTION & REGIONAL EXTRACTION (CRITICAL):
+IMAGE DETECTION & REGIONAL EXTRACTION:
 - If a question has an associated image/diagram/figure, set "has_image": true.
 - Provide "image_description" explaining what the image shows.
 - Provide "image_bbox": [ymin, xmin, ymax, xmax] as normalized coordinates (0-1000) of the image region on the page.
 - Provide "image_page_number": number, the 1-indexed page number within the provided text where the image is located.
 - If multiple images exist, list them in the "images" array with their respective "bbox" and "page_number".
-
-HOW TO HANDLE MIXED CONTENT:
-- If you see "1. Question... Ans: A. Explanation...", EXTRACT the question and options.
-- Put the "Explanation" part into the "explanation_formatted" field with Markdown/LaTeX.
-- DO NOT create a separate question for the explanation.
+- **For Passages**: If a passage has an image, set "has_image": true in the passage object and provide bbox details.
 
 WHAT TO IGNORE (Invalid Questions):
 - "Ans: volatile" (Just an answer)
 - "Solution: The correct answer is B because..." (Just a solution)
 - Bullet points explaining terms (e.g., "• Volatile: This means...")
-
-FOR EACH VALID MCQ:
-1. Extract the question text with Markdown formatting and LaTeX for math.
-2. Extract all options as an array (2-5 options) with Markdown/LaTeX formatting.
-3. Determine the correct answer index (0-based: 0 for first option, 1 for second, etc.).
-4. ALWAYS write a clear, detailed explanation with Markdown/LaTeX - this is MANDATORY.
-5. Set has_image: true if the question references an image.
-6. Identify the general topic and subtopic (we'll map to taxonomy later).
 
 DIFFICULTY ASSESSMENT (CRITICAL):
 Assess the difficulty of each question as "Easy", "Medium", or "Hard" based on the following criteria:
@@ -263,38 +304,53 @@ Assess the difficulty of each question as "Easy", "Medium", or "Hard" based on t
 - **Hard**: Complex application, multi-step analysis or calculations, edge cases, synthesis of multiple concepts, trick questions, or requiring deep understanding.
 *Aim for a realistic distribution if possible, do not default everything to Medium.*
 
-OUTPUT FORMAT (JSON array only):
-[{
-  "question_text_formatted": "What is the value of $x$ in **this quadratic equation**: $x^2 + 5x + 6 = 0$?",
-  "options_formatted": [
-    "$x = -2$ or $x = -3$",
-    "$x = 2$ or $x = 3$",
-    "$x = -1$ or $x = -6$",
-    "$x = 1$ or $x = 6$"
+OUTPUT FORMAT (JSON Object):
+{
+  "passages": [
+    {
+      "id": "measure_1",
+      "content": "Full text of the reading passage...",
+      "has_image": false, // or true
+      "image_bbox": [100, 100, 500, 500],
+      "image_page_number": 1
+    }
   ],
-  "correct_answer": "0",
-  "topic": "Mathematics",
-  "subtopic": "Quadratic Equations",
-  "subject_id": "uuid-of-mathematics",
-  "topic_id": "uuid-of-algebra",
-  "subtopic_id": "uuid-of-quadratic-equations",
-  "explanation_formatted": "To solve $x^2 + 5x + 6 = 0$, we factor: $(x + 2)(x + 3) = 0$. Therefore, $x = -2$ or $x = -3$. The other options don't satisfy the equation.",
-  "difficulty": "Easy",
-  "has_image": true,
-  "image_description": "A graph of a parabola opening upwards.",
-  "image_bbox": [100, 200, 400, 800],
-  "image_page_number": 1
-}]
+  "questions": [
+    {
+      "question_text_formatted": "What is the value of $x$ in **this quadratic equation**: $x^2 + 5x + 6 = 0$?",
+      "options_formatted": [
+        "$x = -2$ or $x = -3$",
+        "$x = 2$ or $x = 3$",
+        "$x = -1$ or $x = -6$",
+        "$x = 1$ or $x = 6$"
+      ],
+      "correct_answer": "0",
+      "topic": "Mathematics",
+      "subtopic": "Quadratic Equations",
+      "subject_id": "uuid-of-mathematics",
+      "topic_id": "uuid-of-algebra",
+      "subtopic_id": "uuid-of-quadratic-equations",
+      "explanation_formatted": "Detailed explanation...",
+      "difficulty": "Easy",
+      "has_image": true,
+      "image_description": "A graph of a parabola opening upwards.",
+      "image_bbox": [100, 200, 400, 800],
+      "image_page_number": 1,
+      "passage_ref_id": null // or "measure_1" if linked to a passage
+    }
+  ]
+}
 
 IMPORTANT REQUIREMENTS:
+- Return a JSON Object with "passages" and "questions" arrays.
 - Use "question_text_formatted", "options_formatted", and "explanation_formatted" fields
-- "options_formatted" is an ARRAY of Markdown strings (not an object)
+- "options_formatted" is an ARRAY of Markdown strings
 - "correct_answer" is the INDEX (0, 1, 2, 3, or 4) as a STRING
 - "explanation_formatted" is MANDATORY and must be detailed (minimum 20 words) with Markdown/LaTeX
 - Include ALL options found (2-5 options)
 - Preserve ALL text formatting from the PDF using Markdown
 - Use LaTeX for ALL mathematical expressions, symbols, and formulas
-- Return ONLY the JSON array, no additional text`;
+- Return ONLY the JSON object, no additional text`;
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -338,26 +394,38 @@ IMPORTANT REQUIREMENTS:
 
         // Parse response
         let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!rawText) return { questions: [], tokens };
+        if (!rawText) return { questions: [], passages: [], tokens };
 
         rawText = rawText.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
 
-        let questions: ExtractedQuestion[] = [];
+        let parsedData: { questions: ExtractedQuestion[], passages: ExtractedPassage[] } = { questions: [], passages: [] };
         try {
-            questions = JSON.parse(rawText);
-            if (!Array.isArray(questions) && rawText.trim().startsWith('[')) {
-                questions = JSON.parse(rawText.trim().replace(/,?\s*$/, '') + ']');
+            parsedData = JSON.parse(rawText);
+
+            // Backward compatibility helper if AI returns just array of questions
+            if (Array.isArray(parsedData)) {
+                parsedData = { questions: parsedData, passages: [] };
             }
         } catch {
             // Recovery attempt
             if (rawText.trim().startsWith('[')) {
                 try {
-                    questions = JSON.parse(rawText.trim().replace(/,?\s*$/, '') + ']');
+                    const questions = JSON.parse(rawText.trim().replace(/,?\s*$/, '') + ']');
+                    parsedData = { questions, passages: [] };
+                } catch { }
+            } else if (rawText.trim().startsWith('{')) {
+                try {
+                    // Try to fix common JSON errors if needed, but basic parse might work
+                    parsedData = JSON.parse(rawText);
                 } catch { }
             }
         }
 
-        return { questions: Array.isArray(questions) ? questions : [], tokens };
+        return {
+            questions: Array.isArray(parsedData.questions) ? parsedData.questions : [],
+            passages: Array.isArray(parsedData.passages) ? parsedData.passages : [],
+            tokens
+        };
     };
 
     // Main extraction function
@@ -365,7 +433,12 @@ IMPORTANT REQUIREMENTS:
         file: File,
         config: Partial<ExtractionConfig> = {},
         model: string = 'gemini-1.5-flash',
-        onQuestionsExtracted?: () => void  // Callback for real-time UI updates
+        onQuestionsExtracted?: () => void,  // Callback for real-time UI updates
+        taxonomyOverrides?: {
+            subject?: { id: string, title: string },
+            topic?: { id: string, title: string },
+            subtopic?: { id: string, title: string }
+        }
     ): Promise<number> => {
         const geminiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
         if (!geminiKey) {
@@ -426,13 +499,13 @@ IMPORTANT REQUIREMENTS:
                 });
 
                 try {
-                    const { questions, tokens } = await extractFromChunk(chunk, geminiKey, file.name, model, taxonomyContext);
+                    const { questions, passages, tokens } = await extractFromChunk(chunk, geminiKey, file.name, model, taxonomyContext, taxonomyOverrides);
 
                     totalTokens.total += tokens.total;
                     totalTokens.prompt += tokens.prompt;
                     totalTokens.completion += tokens.completion;
 
-                    if (questions.length > 0) {
+                    if (questions.length > 0 || passages.length > 0) {
                         // Ensure storage bucket exists
                         await ensureStorageBucket();
 
@@ -445,7 +518,7 @@ IMPORTANT REQUIREMENTS:
                         // Save to database
                         setProgress({
                             step: 'saving',
-                            detail: `Saving ${questions.length} questions...`,
+                            detail: `Saving ${questions.length} questions & ${passages.length} passages...`,
                             currentChunk: i + 1,
                             totalChunks: chunks.length,
                             tokens: totalTokens,
@@ -453,6 +526,43 @@ IMPORTANT REQUIREMENTS:
                         });
 
                         try {
+                            const passageIdMap = new Map<string, string>(); // tempRefId -> realUuid
+
+                            // 1. Process and Insert Passages
+                            for (const p of passages) {
+                                let imageUrl: string | null = null;
+
+                                // Extract passage image if needed
+                                if (p.has_image && p.image_bbox && p.image_page_number) {
+                                    try {
+                                        imageUrl = await extractRegionFromDoc(
+                                            pdfDoc,
+                                            p.image_page_number,
+                                            p.image_bbox,
+                                            `passage_${Date.now()}`
+                                        );
+                                    } catch (err) {
+                                        console.error('Failed to extract passage image:', err);
+                                    }
+                                }
+
+                                const { data: passageData, error: passageError } = await supabase
+                                    .from('reading_passages')
+                                    .insert({
+                                        content: p.content,
+                                        image_url: imageUrl
+                                    })
+                                    .select()
+                                    .single();
+
+                                if (!passageError && passageData) {
+                                    passageIdMap.set(p.id, passageData.id);
+                                } else {
+                                    console.error('Passage insert error:', passageError);
+                                }
+                            }
+
+                            // 2. Process and Insert Questions
                             for (const q of questions) {
                                 // Perform regional image extraction if needed
                                 if (q.has_image && q.image_bbox && q.image_page_number) {
@@ -492,6 +602,11 @@ IMPORTANT REQUIREMENTS:
                                     }
                                 }
 
+                                // Resolve passage ID
+                                const finalPassageId = (q.passage_ref_id && passageIdMap.has(q.passage_ref_id))
+                                    ? passageIdMap.get(q.passage_ref_id)
+                                    : null;
+
                                 const questionToInsert = {
                                     // Plain text fields (backwards compatibility)
                                     question_text: q.question_text_formatted || q.question_text,
@@ -518,6 +633,7 @@ IMPORTANT REQUIREMENTS:
                                     image_description: q.image_description || null,
                                     image_url: q.image_url || null,
                                     is_verified: false,
+                                    passage_id: finalPassageId,
 
                                     // Taxonomy
                                     subject_id: q.subject_id || null,
@@ -546,7 +662,7 @@ IMPORTANT REQUIREMENTS:
                                             }));
 
                                         if (extraImages.length > 0) {
-                                            await supabase.from('question_images' as any).insert(extraImages);
+                                            await supabase.from('question_images').insert(extraImages);
                                         }
                                     }
                                 } else {

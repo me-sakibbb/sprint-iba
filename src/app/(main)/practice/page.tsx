@@ -32,6 +32,8 @@ import {
 import { useSearchParams } from "next/navigation";
 import PracticeSession from "@/components/practice/PracticeSession";
 import PracticeResults from "@/components/practice/PracticeResults";
+import { TaxonomySelector } from "@/components/practice/TaxonomySelector";
+
 
 function PracticeContent() {
     const { user, loading: authLoading } = useAuth();
@@ -39,7 +41,6 @@ function PracticeContent() {
     const {
         loading,
         error,
-        topics,
         session,
         questions,
         currentQuestion,
@@ -53,7 +54,8 @@ function PracticeContent() {
         resetSession,
         timeRemaining,
         setTimeRemaining,
-        totalVpEarned
+        totalVpEarned,
+        passages
     } = usePractice();
 
     const searchParams = useSearchParams();
@@ -63,7 +65,7 @@ function PracticeContent() {
     const [practiceType, setPracticeType] = useState<'normal' | 'mistakes'>('normal');
     const [timePerQuestion, setTimePerQuestion] = useState(60);
     const [questionCount, setQuestionCount] = useState(10);
-    const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+    const [selectedIds, setSelectedIds] = useState<string[]>(['Overall']);
     const [feedbackMode, setFeedbackMode] = useState<'immediate' | 'deferred'>('immediate');
 
     useEffect(() => {
@@ -79,36 +81,11 @@ function PracticeContent() {
         }
     }, [user, authLoading, router]);
 
-    const handleTopicToggle = (topic: string) => {
-        setSelectedTopics(prev => {
-            if (topic === 'Overall') {
-                return prev.includes('Overall') ? [] : ['Overall'];
-            }
-
-            // If selecting a subject (Math, English, Analytical)
-            const subjects = ['Math', 'English', 'Analytical'];
-            if (subjects.includes(topic)) {
-                const withoutSubject = prev.filter(t => t !== topic && t !== 'Overall');
-                if (prev.includes(topic)) {
-                    // Also remove subtopics of this subject
-                    return withoutSubject.filter(t => !topics[topic]?.includes(t));
-                }
-                return [...withoutSubject, topic];
-            }
-
-            // Regular subtopic toggle
-            const newSelection = prev.includes(topic)
-                ? prev.filter(t => t !== topic)
-                : [...prev.filter(t => t !== 'Overall'), topic];
-            return newSelection;
-        });
-    };
-
     const handleStartPractice = () => {
         startSession({
             mode,
             timePerQuestion: mode === 'timed' ? timePerQuestion : undefined,
-            subjects: selectedTopics.length === 0 ? ['Overall'] : selectedTopics,
+            selectedIds: selectedIds.length === 0 ? ['Overall'] : selectedIds,
             questionCount,
             practiceMode: practiceType,
             feedbackMode,
@@ -134,6 +111,7 @@ function PracticeContent() {
                 setTimeRemaining={setTimeRemaining}
                 timePerQuestion={timePerQuestion}
                 feedbackMode={feedbackMode}
+                passages={passages}
             />
         );
     }
@@ -147,6 +125,7 @@ function PracticeContent() {
                 answers={answers}
                 onRetry={resetSession}
                 vpEarned={totalVpEarned}
+                passages={passages}
             />
         );
     }
@@ -369,64 +348,10 @@ function PracticeContent() {
                         <CardDescription>Choose what you want to practice</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <ScrollArea className="h-[300px] pr-4">
-                            <div className="space-y-4">
-                                {/* Overall option */}
-                                <div
-                                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedTopics.includes('Overall')
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:border-primary/50'
-                                        }`}
-                                    onClick={() => handleTopicToggle('Overall')}
-                                >
-                                    <Checkbox checked={selectedTopics.includes('Overall')} />
-                                    <div className="flex-1">
-                                        <div className="font-semibold">Overall</div>
-                                        <div className="text-sm text-muted-foreground">All subjects and topics</div>
-                                    </div>
-                                </div>
-
-                                {/* Subjects and their topics */}
-                                {Object.entries(topics).map(([subject, subtopics]) => (
-                                    <div key={subject} className="space-y-2">
-                                        <div
-                                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedTopics.includes(subject)
-                                                ? 'border-primary bg-primary/5'
-                                                : 'border-border hover:border-primary/50'
-                                                }`}
-                                            onClick={() => handleTopicToggle(subject)}
-                                        >
-                                            <Checkbox
-                                                checked={selectedTopics.includes(subject) || selectedTopics.includes('Overall')}
-                                                disabled={selectedTopics.includes('Overall')}
-                                            />
-                                            <div className="font-semibold">{subject}</div>
-                                            <Badge variant="secondary" className="ml-auto">
-                                                {subtopics.length} topics
-                                            </Badge>
-                                        </div>
-
-                                        {!selectedTopics.includes(subject) && !selectedTopics.includes('Overall') && (
-                                            <div className="ml-8 grid grid-cols-2 gap-2">
-                                                {subtopics.map((subtopic) => (
-                                                    <div
-                                                        key={subtopic}
-                                                        className={`flex items-center gap-2 p-2 rounded-md text-sm cursor-pointer transition-all ${selectedTopics.includes(subtopic)
-                                                            ? 'bg-primary/10 text-primary'
-                                                            : 'hover:bg-muted'
-                                                            }`}
-                                                        onClick={() => handleTopicToggle(subtopic)}
-                                                    >
-                                                        <Checkbox checked={selectedTopics.includes(subtopic)} />
-                                                        <span className="truncate">{subtopic}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
+                        <TaxonomySelector
+                            selectedIds={selectedIds}
+                            onSelectionChange={setSelectedIds}
+                        />
                     </CardContent>
                 </Card>
 

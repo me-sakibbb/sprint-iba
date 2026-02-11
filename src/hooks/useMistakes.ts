@@ -32,6 +32,7 @@ export interface MistakeStat {
 export interface MistakeWithQuestion extends MistakeLog {
     question: Question;
     mistake_stats?: MistakeStat;
+    passage?: Tables<'reading_passages'> | null;
 }
 
 export interface AIFeedback {
@@ -106,11 +107,22 @@ export function useMistakes() {
 
             if (fetchError) throw fetchError;
 
-            // Enrich with stats
+            // Enrich with stats and passages
             const enrichedMistakes: MistakeWithQuestion[] = [];
 
             // Fetch all stats for these questions in one go from the view
             const questionIds = Array.from(new Set(mistakeLogs?.map(log => log.question_id) || []));
+            const questions = mistakeLogs?.map(log => (log as any).questions as unknown as Question) || [];
+
+            // Fetch passages
+            const passageIds = Array.from(new Set(questions.map(q => q.passage_id).filter(id => !!id))) as string[];
+            const { data: passages } = await supabase
+                .from('reading_passages')
+                .select('*')
+                .in('id', passageIds);
+
+            const passageMap = new Map(passages?.map(p => [p.id, p]));
+
             const { data: allStats } = await supabase
                 .from('mistake_stats' as any)
                 .select('*')
@@ -119,11 +131,14 @@ export function useMistakes() {
 
             for (const log of mistakeLogs || []) {
                 const stats = (allStats as any[])?.find(s => s.question_id === log.question_id);
+                const question = (log as any).questions as unknown as Question;
+                const passage = question.passage_id ? passageMap.get(question.passage_id) : null;
 
                 enrichedMistakes.push({
                     ...log,
-                    question: (log as any).questions as unknown as Question,
-                    mistake_stats: stats as any as MistakeStat
+                    question,
+                    mistake_stats: stats as any as MistakeStat,
+                    passage
                 });
             }
 
@@ -269,7 +284,7 @@ export function useMistakes() {
             console.warn('RPC get_high_priority_mistakes failed, using fallback query:', error);
             // Fallback: Query the view directly
             const { data: fallbackData, error: fallbackError } = await supabase
-                .from('mistake_stats')
+                .from('mistake_stats' as any)
                 .select('*')
                 .eq('user_id', user.id)
                 .gte('severity_score', 30)
@@ -310,8 +325,8 @@ export function useMistakes() {
 
             // Sort by severity score
             const sortedQuestions = questions?.sort((a, b) => {
-                const severityA = (highPriorityMistakes as any[]).find(m => m.question_id === a.id)?.severity_score || 0;
-                const severityB = (highPriorityMistakes as any[]).find(m => m.question_id === b.id)?.severity_score || 0;
+                const severityA = (highPriorityMistakes as any[]).find((m: any) => m.question_id === a.id)?.severity_score || 0;
+                const severityB = (highPriorityMistakes as any[]).find((m: any) => m.question_id === b.id)?.severity_score || 0;
                 return severityB - severityA;
             });
 

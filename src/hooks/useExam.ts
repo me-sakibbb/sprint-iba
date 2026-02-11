@@ -17,6 +17,7 @@ interface ExamState {
     attempt: ExamAttempt | null;
     exam: Exam | null;
     questions: Question[];
+    passages: Record<string, any>;
     currentIndex: number;
     answers: Record<string, string>;
     timeRemaining: number;
@@ -32,6 +33,7 @@ export function useExam() {
         attempt: null,
         exam: null,
         questions: [],
+        passages: {},
         currentIndex: 0,
         answers: {},
         timeRemaining: 0,
@@ -132,6 +134,23 @@ export function useExam() {
 
             if (questionsError) throw questionsError;
 
+            // Fetch associated passages
+            const passageIds = Array.from(new Set(questions?.map((q) => q.passage_id).filter((id): id is string => !!id)));
+            let passagesMap: Record<string, any> = {};
+
+            if (passageIds.length > 0) {
+                const { data: passages, error: passagesError } = await supabase
+                    .from('reading_passages')
+                    .select('*')
+                    .in('id', passageIds);
+
+                if (passagesError) throw passagesError;
+
+                passages?.forEach((p: any) => {
+                    passagesMap[p.id] = p;
+                });
+            }
+
             // Order questions by exam.question_ids order
             const orderedQuestions = (exam.question_ids || [])
                 .map((id: string) => questions?.find((q: any) => q.id === id))
@@ -200,6 +219,7 @@ export function useExam() {
                 attempt,
                 exam: exam as Exam,
                 questions: orderedQuestions,
+                passages: passagesMap,
                 currentIndex: 0,
                 answers: (attempt.answers as Record<string, string>) || {},
                 timeRemaining: remaining,
@@ -303,6 +323,7 @@ export function useExam() {
             attempt: null,
             exam: null,
             questions: [],
+            passages: {},
             currentIndex: 0,
             answers: {},
             timeRemaining: 0,
@@ -317,6 +338,7 @@ export function useExam() {
         exam: state.exam,
         attempt: state.attempt,
         questions: state.questions,
+        passages: state.passages,
         currentQuestion: state.questions[state.currentIndex],
         currentIndex: state.currentIndex,
         answers: state.answers,

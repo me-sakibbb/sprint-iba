@@ -29,6 +29,10 @@ export type Database = {
           topic: string | null
           image_url: string | null
           is_verified: boolean | null
+          passage_id: string | null
+          question_text_formatted: string | null
+          options_formatted: string[] | null
+          explanation_formatted: string | null
         }
         Insert: {
           id?: string
@@ -44,6 +48,7 @@ export type Database = {
           topic?: string | null
           image_url?: string | null
           is_verified?: boolean | null
+          passage_id?: string | null
         }
         Update: {
           id?: string
@@ -59,6 +64,58 @@ export type Database = {
           topic?: string | null
           image_url?: string | null
           is_verified?: boolean | null
+          passage_id?: string | null
+          question_text_formatted?: string | null
+          options_formatted?: string[] | null
+          explanation_formatted?: string | null
+        }
+        Relationships: []
+      }
+      question_images: {
+        Row: {
+          id: string
+          question_id: string
+          image_url: string
+          description: string | null
+          image_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          question_id: string
+          image_url: string
+          description?: string | null
+          image_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          question_id?: string
+          image_url?: string
+          description?: string | null
+          image_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      reading_passages: {
+        Row: {
+          id: string
+          content: string
+          image_url: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          content: string
+          image_url?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          content?: string
+          image_url?: string | null
+          created_at?: string
         }
         Relationships: []
       }
@@ -554,6 +611,18 @@ export type Database = {
           mistake_count: number
           last_mistake_at: string
         }[]
+      }
+      submit_exam_attempt: {
+        Args: {
+          p_attempt_id: string
+          p_answers: Record<string, string>
+        }
+        Returns: {
+          score: number
+          total_questions: number
+          points_awarded: number
+          streak_bonus: number
+        }
       }
     }
     Enums: {

@@ -17,7 +17,8 @@ import {
     Target,
     Clock,
     Sparkles,
-    Zap
+    Zap,
+    BookOpen
 } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import { MarkdownText } from "@/components/MarkdownText";
@@ -31,6 +32,7 @@ interface PracticeResultsProps {
     answers: Record<string, string>;
     onRetry: () => void;
     vpEarned: number;
+    passages?: Record<string, any>;
 }
 
 export default function PracticeResults({
@@ -38,6 +40,7 @@ export default function PracticeResults({
     questions,
     answers,
     onRetry,
+    passages = {},
     ...props
 }: PracticeResultsProps) {
     const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
@@ -207,6 +210,30 @@ export default function PracticeResults({
 
                                         <CollapsibleContent>
                                             <div className="p-4 mt-2 rounded-xl bg-muted/30 space-y-4">
+                                                {/* Passage */}
+                                                {question.passage_id && passages?.[question.passage_id] && (
+                                                    <div className="mb-4 rounded-lg border overflow-hidden">
+                                                        <div className="p-3 bg-muted/30 border-b flex items-center gap-2 font-medium text-sm">
+                                                            <BookOpen className="w-4 h-4 text-primary" />
+                                                            Passage
+                                                        </div>
+                                                        <div className="p-4 bg-card max-h-[300px] overflow-y-auto">
+                                                            <div className="text-sm prose-sm dark:prose-invert">
+                                                                <MarkdownText text={passages[question.passage_id].content} />
+                                                            </div>
+                                                            {passages[question.passage_id].image_url && (
+                                                                <div className="mt-3">
+                                                                    <img
+                                                                        src={passages[question.passage_id].image_url}
+                                                                        alt="Passage"
+                                                                        className="max-w-full rounded-lg"
+                                                                    />
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {/* Question */}
                                                 <div>
                                                     <h4 className="text-sm font-semibold mb-2">Question</h4>

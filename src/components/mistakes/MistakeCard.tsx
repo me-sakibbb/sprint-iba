@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Play, Calendar, AlertCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Play, Calendar, AlertCircle, BookOpen } from "lucide-react";
 import { MarkdownText } from "@/components/MarkdownText";
 import type { MistakeWithQuestion } from "@/hooks/useMistakes";
 import { useRouter } from "next/navigation";
@@ -194,6 +194,30 @@ export default function MistakeCard({ mistake }: MistakeCardProps) {
                         </div>
                     </div>
                 </div>
+
+                {/* Passage (when expanded) */}
+                {expanded && mistake.passage && (
+                    <div className="mb-4 rounded-lg border overflow-hidden">
+                        <div className="p-3 bg-muted/30 border-b flex items-center gap-2 font-medium text-sm">
+                            <BookOpen className="w-4 h-4 text-primary" />
+                            Passage
+                        </div>
+                        <div className="p-4 bg-card max-h-[300px] overflow-y-auto">
+                            <div className="text-sm prose-sm dark:prose-invert">
+                                <MarkdownText text={mistake.passage.content} />
+                            </div>
+                            {mistake.passage.image_url && (
+                                <div className="mt-3">
+                                    <img
+                                        src={mistake.passage.image_url}
+                                        alt="Passage"
+                                        className="max-w-full rounded-lg"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Explanation (when expanded) */}
                 {expanded && mistake.question?.explanation && (

@@ -22,6 +22,9 @@ export interface Question {
     subject_id?: string;
     topic_id?: string;
     subtopic_id?: string;
+    passage_id?: string | null;
+    passage_content?: string | null;
+    passage_image?: string | null;
     images?: Array<{ id: string; image_url: string; description?: string; image_order: number }>;
 }
 
@@ -82,7 +85,7 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
 
             let query = supabase
                 .from('questions')
-                .select('*, question_images(*)', { count: 'exact' });
+                .select('*, question_images(*), reading_passages(content, image_url)', { count: 'exact' });
 
             // Apply verification filter
             if (filters.verificationStatus === 'verified') {
@@ -176,6 +179,9 @@ export function useQuestionFilters(initialFilters: Partial<FilterState> = {}) {
                     subject_id: q.subject_id,
                     topic_id: q.topic_id,
                     subtopic_id: q.subtopic_id,
+                    passage_id: q.passage_id,
+                    passage_content: q.reading_passages?.content || null,
+                    passage_image: q.reading_passages?.image_url || null,
                     images: q.question_images || [],
                 };
             });

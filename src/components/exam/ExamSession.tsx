@@ -39,6 +39,7 @@ interface ExamSessionProps {
     currentIndex: number;
     answers: Record<string, string>;
     timeRemaining: number;
+    passages?: Record<string, any>;
     onAnswer: (questionId: string, answer: string) => void;
     onNavigate: (index: number) => void;
     onSubmit: () => void;
@@ -52,6 +53,7 @@ export default function ExamSession({
     currentIndex,
     answers,
     timeRemaining,
+    passages = {},
     onAnswer,
     onNavigate,
     onSubmit,
@@ -99,6 +101,8 @@ export default function ExamSession({
     };
 
     const unansweredCount = questions.length - answeredCount;
+
+    const currentPassage = currentQuestion?.passage_id ? passages?.[currentQuestion.passage_id] : null;
 
     return (
         <div className="min-h-screen bg-background">
@@ -205,97 +209,122 @@ export default function ExamSession({
                 </div>
 
                 {/* Question Content */}
-                <div className="flex-1 max-w-3xl">
-                    <Card className="border-border/40 mb-6">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-3 mb-4">
-                                <Badge variant="outline">Q{currentIndex + 1}</Badge>
-                                {currentQuestion?.topic && (
-                                    <Badge variant="secondary">{currentQuestion.topic}</Badge>
-                                )}
-                                {currentQuestion?.difficulty && (
-                                    <Badge
-                                        variant="outline"
-                                        className={`${currentQuestion.difficulty === 'hard'
-                                            ? 'border-red-500 text-red-500'
-                                            : currentQuestion.difficulty === 'medium'
-                                                ? 'border-yellow-500 text-yellow-500'
-                                                : 'border-green-500 text-green-500'
-                                            }`}
-                                    >
-                                        {currentQuestion.difficulty}
-                                    </Badge>
-                                )}
-                            </div>
-
-                            <div className="text-lg leading-relaxed">
-                                <MarkdownText text={currentQuestion?.question_text || ''} />
-                            </div>
-
-                            {currentQuestion?.image_url && (
-                                <div className="mt-4">
-                                    <img
-                                        src={currentQuestion.image_url}
-                                        alt="Question"
-                                        className="max-w-full rounded-lg"
-                                    />
+                <div className={`flex-1 ${currentPassage ? 'w-full grid grid-cols-1 xl:grid-cols-2 gap-6' : 'max-w-3xl'}`}>
+                    {/* Passage Column */}
+                    {currentPassage && (
+                        <Card className="border-border/40 h-fit max-h-[calc(100vh-12rem)] overflow-y-auto sticky top-32">
+                            <CardContent className="p-6">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">Reading Passage</Badge>
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                <div className="prose prose-sm dark:prose-invert max-w-none">
+                                    <MarkdownText text={currentPassage.content} />
+                                </div>
+                                {currentPassage.image_url && (
+                                    <div className="mt-4">
+                                        <img
+                                            src={currentPassage.image_url}
+                                            alt="Passage"
+                                            className="max-w-full rounded-lg"
+                                        />
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
 
-                    {/* Options */}
-                    <div className="grid gap-3 mb-8">
-                        {options.map((option, index) => {
-                            const label = optionLabels[index];
-                            const isSelected = selectedAnswer === label;
+                    <div className="space-y-6">
+                        <Card className="border-border/40">
+                            <CardContent className="p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <Badge variant="outline">Q{currentIndex + 1}</Badge>
+                                    {currentQuestion?.topic && (
+                                        <Badge variant="secondary">{currentQuestion.topic}</Badge>
+                                    )}
+                                    {currentQuestion?.difficulty && (
+                                        <Badge
+                                            variant="outline"
+                                            className={`${currentQuestion.difficulty === 'hard'
+                                                ? 'border-red-500 text-red-500'
+                                                : currentQuestion.difficulty === 'medium'
+                                                    ? 'border-yellow-500 text-yellow-500'
+                                                    : 'border-green-500 text-green-500'
+                                                }`}
+                                        >
+                                            {currentQuestion.difficulty}
+                                        </Badge>
+                                    )}
+                                </div>
 
-                            return (
-                                <button
-                                    key={index}
-                                    onClick={() => handleSelectAnswer(label)}
-                                    className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-4 ${isSelected
-                                        ? 'border-primary bg-primary/5'
-                                        : 'border-border hover:border-primary/50'
-                                        }`}
-                                >
-                                    <div
-                                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${isSelected
-                                            ? 'bg-primary text-primary-foreground'
-                                            : 'bg-muted'
+                                <div className="text-lg leading-relaxed">
+                                    <MarkdownText text={currentQuestion?.question_text || ''} />
+                                </div>
+
+                                {currentQuestion?.image_url && (
+                                    <div className="mt-4">
+                                        <img
+                                            src={currentQuestion.image_url}
+                                            alt="Question"
+                                            className="max-w-full rounded-lg"
+                                        />
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        {/* Options */}
+                        <div className="grid gap-3">
+                            {options.map((option, index) => {
+                                const label = optionLabels[index];
+                                const isSelected = selectedAnswer === label;
+
+                                return (
+                                    <button
+                                        key={index}
+                                        onClick={() => handleSelectAnswer(label)}
+                                        className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-4 ${isSelected
+                                            ? 'border-primary bg-primary/5'
+                                            : 'border-border hover:border-primary/50'
                                             }`}
                                     >
-                                        {label}
-                                    </div>
-                                    <div className="flex-1 pt-1">
-                                        <MarkdownText text={option} />
-                                    </div>
-                                    {isSelected && (
-                                        <CheckCircle className="w-5 h-5 text-primary shrink-0" />
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
+                                        <div
+                                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm ${isSelected
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'bg-muted'
+                                                }`}
+                                        >
+                                            {label}
+                                        </div>
+                                        <div className="flex-1 pt-1">
+                                            <MarkdownText text={option} />
+                                        </div>
+                                        {isSelected && (
+                                            <CheckCircle className="w-5 h-5 text-primary shrink-0" />
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
 
-                    {/* Navigation */}
-                    <div className="flex justify-between">
-                        <Button
-                            variant="outline"
-                            onClick={() => onNavigate(currentIndex - 1)}
-                            disabled={currentIndex === 0}
-                        >
-                            <ArrowLeft className="w-4 h-4 mr-2" />
-                            Previous
-                        </Button>
+                        {/* Navigation */}
+                        <div className="flex justify-between pt-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => onNavigate(currentIndex - 1)}
+                                disabled={currentIndex === 0}
+                            >
+                                <ArrowLeft className="w-4 h-4 mr-2" />
+                                Previous
+                            </Button>
 
-                        <Button
-                            onClick={() => onNavigate(currentIndex + 1)}
-                            disabled={currentIndex === questions.length - 1}
-                        >
-                            Next
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
+                            <Button
+                                onClick={() => onNavigate(currentIndex + 1)}
+                                disabled={currentIndex === questions.length - 1}
+                            >
+                                Next
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>

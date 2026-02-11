@@ -4,8 +4,10 @@ import { useState } from 'react';
 import {
     Upload, CheckCircle, AlertCircle,
     Loader2, Trash2, ChevronDown, BrainCircuit,
-    Info, Tag, MessageSquareQuote, Layers, RefreshCw, Search, Filter, Image as ImageIcon
+    Info, Tag, MessageSquareQuote, Layers, RefreshCw, Search, Filter, Image as ImageIcon, BookOpen,
+    X
 } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +26,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { ManualQuestionEntry } from "@/components/admin/ManualQuestionEntry";
 import { MarkdownLatexRenderer } from "@/components/admin/MarkdownLatexRenderer";
 import { useTaxonomy, useSubjects, useTopics, useSubtopics } from "@/hooks/useTaxonomy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +46,20 @@ export default function QuestionExtractor() {
     const [startPage, setStartPage] = useState<number | undefined>(undefined);
     const [endPage, setEndPage] = useState<number | undefined>(undefined);
     const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
+    const [mode, setMode] = useState<'extract' | 'manual'>('extract');
+
+    // Selection State
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+    // Taxonomy Pre-selection State
+    const [selectedSubjectId, setSelectedSubjectId] = useState<string>("all");
+    const [selectedTopicId, setSelectedTopicId] = useState<string>("all");
+    const [selectedSubtopicId, setSelectedSubtopicId] = useState<string>("all");
+
+    // Taxonomy hooks for pre-selection
+    const { subjects: preSubjects } = useSubjects();
+    const { topics: preTopics } = useTopics(selectedSubjectId !== "all" ? selectedSubjectId : undefined);
+    const { subtopics: preSubtopics } = useSubtopics(selectedTopicId !== "all" ? selectedTopicId : undefined);
 
     const { extract, stop, progress, isProcessing } = useQuestionExtraction();
     const {
@@ -80,8 +97,24 @@ export default function QuestionExtractor() {
             endPage: endPage || undefined,
         };
 
+        // Prepare taxonomy overrides
+        const taxonomyOverrides: any = {};
+        if (selectedSubjectId !== "all") {
+            const subject = preSubjects.find(s => s.id === selectedSubjectId);
+            if (subject) taxonomyOverrides.subject = { id: subject.id, title: subject.name };
+        }
+        if (selectedTopicId !== "all") {
+            const topic = preTopics.find(t => t.id === selectedTopicId);
+            if (topic) taxonomyOverrides.topic = { id: topic.id, title: topic.name };
+        }
+        if (selectedSubtopicId !== "all") {
+            const subtopic = preSubtopics.find(st => st.id === selectedSubtopicId);
+            if (subtopic) taxonomyOverrides.subtopic = { id: subtopic.id, title: subtopic.name };
+        }
+
+
         // Pass refetch as callback - UI will update after each chunk is saved
-        await extract(file, config, selectedModel, refetch);
+        await extract(file, config, selectedModel, refetch, taxonomyOverrides);
         setFile(null);
     };
 
@@ -109,10 +142,11 @@ export default function QuestionExtractor() {
                     subject_id: q.subject_id,
                     topic_id: q.topic_id,
                     subtopic_id: q.subtopic_id,
+                    passage_id: q.passage_id,
                     image_url: q.image_url,
                     has_image: q.has_image,
                     is_verified: true
-                } as any)
+                })
                 .eq('id', q.local_id);
 
             if (error) throw error;
@@ -171,6 +205,82 @@ export default function QuestionExtractor() {
         }
     };
 
+    // Bulk Actions
+    const handleToggleSelect = (id: string, checked: boolean) => {
+        const newSet = new Set(selectedIds);
+        if (checked) {
+            newSet.add(id);
+        } else {
+            newSet.delete(id);
+        }
+        setSelectedIds(newSet);
+    };
+
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            const ids = questions.map(q => q.local_id);
+            setSelectedIds(prev => {
+                const newSet = new Set(prev);
+                ids.forEach(id => newSet.add(id));
+                return newSet;
+            });
+        } else {
+            const ids = new Set(questions.map(q => q.local_id));
+            setSelectedIds(prev => {
+                const newSet = new Set<string>();
+                prev.forEach(id => {
+                    if (!ids.has(id)) newSet.add(id);
+                });
+                return newSet;
+            });
+        }
+    };
+
+    const handleBulkVerify = async () => {
+        if (selectedIds.size === 0) return;
+        try {
+            const ids: string[] = [];
+            selectedIds.forEach(id => ids.push(id));
+
+            const { error } = await supabase
+                .from('questions')
+                .update({ is_verified: true })
+                .in('id', ids);
+
+            if (error) throw error;
+
+            // Optimistically update
+            ids.forEach(id => removeQuestionLocally(id));
+            setSelectedIds(new Set());
+            toast.success(`Verified ${selectedIds.size} questions`);
+        } catch (err: any) {
+            toast.error("Bulk verify failed: " + err.message);
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedIds.size === 0) return;
+        if (!confirm(`Delete ${selectedIds.size} questions?`)) return;
+
+        try {
+            const ids: string[] = [];
+            selectedIds.forEach(id => ids.push(id));
+
+            const { error } = await supabase
+                .from('questions')
+                .delete()
+                .in('id', ids);
+
+            if (error) throw error;
+
+            ids.forEach(id => removeQuestionLocally(id));
+            setSelectedIds(new Set());
+            toast.success(`Deleted ${selectedIds.size} questions`);
+        } catch (err: any) {
+            toast.error("Bulk delete failed: " + err.message);
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-7xl mx-auto">
             {/* Header */}
@@ -184,166 +294,260 @@ export default function QuestionExtractor() {
                     </h1>
                     <p className="text-slate-500 mt-1">Extract MCQs from PDFs using AI</p>
                 </div>
-                <Button variant="outline" onClick={refetch} disabled={loading}>
-                    <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                    Refresh
-                </Button>
+                <div className="flex gap-2">
+                    <div className="bg-slate-100 p-1 rounded-lg flex gap-1 mr-4">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setMode('extract')}
+                            className={mode === 'extract' ? 'bg-white shadow-sm' : ''}
+                        >
+                            AI Extraction
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setMode('manual')}
+                            className={mode === 'manual' ? 'bg-white shadow-sm' : ''}
+                        >
+                            Manual Entry
+                        </Button>
+                    </div>
+                    <Button variant="outline" onClick={refetch} disabled={loading}>
+                        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </Button>
+                </div>
             </div>
 
             {/* Token Usage Stats */}
             <TokenUsageStats />
 
-            {/* Upload Section */}
-            <Card className="border-slate-200">
-                <CardContent className="p-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Left: Settings */}
-                        <div className="space-y-4">
-                            <h3 className="text-lg font-bold text-slate-900">Extraction Settings</h3>
+            {/* Upload Section / Manual Entry */}
+            {mode === 'extract' ? (
+                <Card className="border-slate-200">
+                    <CardContent className="p-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            {/* Left: Settings */}
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-slate-900">Extraction Settings</h3>
 
-                            {/* File Upload */}
-                            <div className="relative group border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-6 text-center transition-all cursor-pointer">
-                                <input
-                                    type="file"
-                                    accept=".pdf"
-                                    onChange={handleFileChange}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                                />
-                                <Upload className="w-8 h-8 mx-auto text-slate-300 group-hover:text-indigo-500 mb-2" />
-                                <p className="text-sm font-bold text-slate-600 truncate">
-                                    {file ? file.name : "Click or drag PDF"}
-                                </p>
-                            </div>
-
-                            {file && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2 col-span-2">
-                                        <Label htmlFor="model">AI Model</Label>
-                                        <Select value={selectedModel} onValueChange={setSelectedModel}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select model" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental)</SelectItem>
-                                                <SelectItem value="gemini-2.0-flash-lite-preview-02-05">Gemini 2.0 Flash Lite (Preview)</SelectItem>
-                                                <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash (Recommended)</SelectItem>
-                                                <SelectItem value="gemini-1.5-flash-8b">Gemini 1.5 Flash-8B</SelectItem>
-                                                <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro (Best Quality)</SelectItem>
-                                                <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="chunkSize">Pages/Chunk</Label>
-                                        <Input
-                                            id="chunkSize"
-                                            type="number"
-                                            min={1}
-                                            max={20}
-                                            value={pagesPerChunk}
-                                            onChange={e => setPagesPerChunk(parseInt(e.target.value) || 5)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="startPage">Start Page</Label>
-                                        <Input
-                                            id="startPage"
-                                            type="number"
-                                            min={1}
-                                            placeholder="1"
-                                            value={startPage || ''}
-                                            onChange={e => setStartPage(parseInt(e.target.value) || undefined)}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="endPage">End Page</Label>
-                                        <Input
-                                            id="endPage"
-                                            type="number"
-                                            min={1}
-                                            placeholder="All"
-                                            value={endPage || ''}
-                                            onChange={e => setEndPage(parseInt(e.target.value) || undefined)}
-                                        />
-                                    </div>
+                                {/* File Upload */}
+                                <div className="relative group border-2 border-dashed border-slate-200 hover:border-indigo-400 rounded-xl p-6 text-center transition-all cursor-pointer">
+                                    <input
+                                        type="file"
+                                        accept=".pdf"
+                                        onChange={handleFileChange}
+                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    />
+                                    <Upload className="w-8 h-8 mx-auto text-slate-300 group-hover:text-indigo-500 mb-2" />
+                                    <p className="text-sm font-bold text-slate-600 truncate">
+                                        {file ? file.name : "Click or drag PDF"}
+                                    </p>
                                 </div>
-                            )}
 
-                            {/* Extract Button */}
-                            {isProcessing ? (
-                                <div className="flex gap-2">
-                                    <Button disabled className="flex-1">
-                                        <Loader2 className="animate-spin w-4 h-4 mr-2" />
-                                        Processing...
+                                {file && (
+                                    <>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2 col-span-2">
+                                                <Label htmlFor="model">AI Model</Label>
+                                                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select model" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Experimental)</SelectItem>
+                                                        <SelectItem value="gemini-2.0-flash-lite-preview-02-05">Gemini 2.0 Flash Lite (Preview)</SelectItem>
+                                                        <SelectItem value="gemini-1.5-flash">Gemini 1.5 Flash (Recommended)</SelectItem>
+                                                        <SelectItem value="gemini-1.5-flash-8b">Gemini 1.5 Flash-8B</SelectItem>
+                                                        <SelectItem value="gemini-1.5-pro">Gemini 1.5 Pro (Best Quality)</SelectItem>
+                                                        <SelectItem value="gemini-2.5-flash">Gemini 2.5 Flash</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="chunkSize">Pages/Chunk</Label>
+                                                <Input
+                                                    id="chunkSize"
+                                                    type="number"
+                                                    min={1}
+                                                    max={20}
+                                                    value={pagesPerChunk}
+                                                    onChange={e => setPagesPerChunk(parseInt(e.target.value) || 5)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="startPage">Start Page</Label>
+                                                <Input
+                                                    id="startPage"
+                                                    type="number"
+                                                    min={1}
+                                                    placeholder="1"
+                                                    value={startPage || ''}
+                                                    onChange={e => setStartPage(parseInt(e.target.value) || undefined)}
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="endPage">End Page</Label>
+                                                <Input
+                                                    id="endPage"
+                                                    type="number"
+                                                    min={1}
+                                                    placeholder="All"
+                                                    value={endPage || ''}
+                                                    onChange={e => setEndPage(parseInt(e.target.value) || undefined)}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Taxonomy Pre-selection */}
+                                        <div className="space-y-4 pt-2 border-t border-slate-100 mt-4">
+                                            <Label className="text-slate-900 font-semibold block mb-2">Pre-assign Taxonomy (Optional)</Label>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="extract-subject" className="text-xs text-slate-500">Subject</Label>
+                                                    <Select value={selectedSubjectId} onValueChange={(val) => {
+                                                        setSelectedSubjectId(val);
+                                                        setSelectedTopicId("all");
+                                                        setSelectedSubtopicId("all");
+                                                    }}>
+                                                        <SelectTrigger id="extract-subject">
+                                                            <SelectValue placeholder="Auto-detect" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="all">Auto-detect</SelectItem>
+                                                            {preSubjects.map(s => (
+                                                                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="extract-topic" className="text-xs text-slate-500">Topic</Label>
+                                                    <Select
+                                                        value={selectedTopicId}
+                                                        onValueChange={(val) => {
+                                                            setSelectedTopicId(val);
+                                                            setSelectedSubtopicId("all");
+                                                        }}
+                                                        disabled={selectedSubjectId === "all"}
+                                                    >
+                                                        <SelectTrigger id="extract-topic">
+                                                            <SelectValue placeholder="Auto-detect" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="all">Auto-detect</SelectItem>
+                                                            {preTopics.map(t => (
+                                                                <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="extract-subtopic" className="text-xs text-slate-500">Subtopic</Label>
+                                                    <Select
+                                                        value={selectedSubtopicId}
+                                                        onValueChange={setSelectedSubtopicId}
+                                                        disabled={selectedTopicId === "all"}
+                                                    >
+                                                        <SelectTrigger id="extract-subtopic">
+                                                            <SelectValue placeholder="Auto-detect" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="all">Auto-detect</SelectItem>
+                                                            {preSubtopics.map(st => (
+                                                                <SelectItem key={st.id} value={st.id}>{st.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-slate-400">
+                                                *If selected, extracted questions will be forced into these categories. Leave as "Auto-detect" to let AI decide.
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Extract Button */}
+                                {isProcessing ? (
+                                    <div className="flex gap-2">
+                                        <Button disabled className="flex-1">
+                                            <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                                            Processing...
+                                        </Button>
+                                        <Button variant="destructive" onClick={stop}>Stop</Button>
+                                    </div>
+                                ) : (
+                                    <Button
+                                        onClick={handleExtract}
+                                        disabled={!file}
+                                        className="w-full bg-slate-900 hover:bg-slate-800"
+                                    >
+                                        <BrainCircuit className="w-4 h-4 mr-2" />
+                                        Start Extraction
                                     </Button>
-                                    <Button variant="destructive" onClick={stop}>Stop</Button>
-                                </div>
-                            ) : (
-                                <Button
-                                    onClick={handleExtract}
-                                    disabled={!file}
-                                    className="w-full bg-slate-900 hover:bg-slate-800"
-                                >
-                                    <BrainCircuit className="w-4 h-4 mr-2" />
-                                    Start Extraction
-                                </Button>
-                            )}
-                        </div>
+                                )}
+                            </div>
 
-                        {/* Right: Progress & Info */}
-                        <div className="space-y-4">
-                            {progress.step !== 'idle' && (
-                                <div className={`rounded-xl p-4 border ${progress.step === 'error' ? 'bg-rose-50 border-rose-200' :
-                                    progress.step === 'complete' ? 'bg-emerald-50 border-emerald-200' :
-                                        'bg-blue-50 border-blue-200'
-                                    }`}>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        {progress.step === 'complete' ? (
-                                            <CheckCircle className="w-4 h-4 text-emerald-600" />
-                                        ) : progress.step === 'error' ? (
-                                            <AlertCircle className="w-4 h-4 text-rose-600" />
-                                        ) : (
-                                            <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                            {/* Right: Progress & Info */}
+                            <div className="space-y-4">
+                                {progress.step !== 'idle' && (
+                                    <div className={`rounded-xl p-4 border ${progress.step === 'error' ? 'bg-rose-50 border-rose-200' :
+                                        progress.step === 'complete' ? 'bg-emerald-50 border-emerald-200' :
+                                            'bg-blue-50 border-blue-200'
+                                        }`}>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            {progress.step === 'complete' ? (
+                                                <CheckCircle className="w-4 h-4 text-emerald-600" />
+                                            ) : progress.step === 'error' ? (
+                                                <AlertCircle className="w-4 h-4 text-rose-600" />
+                                            ) : (
+                                                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                                            )}
+                                            <span className="font-bold text-sm capitalize">{progress.step}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-600">{progress.detail}</p>
+                                        {progress.currentChunk && progress.totalChunks && (
+                                            <p className="text-xs text-slate-500 mt-1">
+                                                Chunk {progress.currentChunk}/{progress.totalChunks}
+                                            </p>
                                         )}
-                                        <span className="font-bold text-sm capitalize">{progress.step}</span>
+                                        {progress.tokens && (
+                                            <p className="text-xs font-mono text-slate-500 mt-2">
+                                                Tokens: {progress.tokens.total.toLocaleString()}
+                                            </p>
+                                        )}
                                     </div>
-                                    <p className="text-xs text-slate-600">{progress.detail}</p>
-                                    {progress.currentChunk && progress.totalChunks && (
-                                        <p className="text-xs text-slate-500 mt-1">
-                                            Chunk {progress.currentChunk}/{progress.totalChunks}
-                                        </p>
-                                    )}
-                                    {progress.tokens && (
-                                        <p className="text-xs font-mono text-slate-500 mt-2">
-                                            Tokens: {progress.tokens.total.toLocaleString()}
-                                        </p>
-                                    )}
-                                </div>
-                            )}
+                                )}
 
-                            <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                                <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
-                                    <Info className="w-4 h-4 text-indigo-600" /> How it works
-                                </h4>
-                                <ul className="space-y-2 text-xs text-slate-600">
-                                    <li className="flex items-center gap-2">
-                                        <span className="w-4 h-4 rounded-full bg-white border flex items-center justify-center text-[10px] font-bold">1</span>
-                                        Upload PDF with MCQs
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <span className="w-4 h-4 rounded-full bg-white border flex items-center justify-center text-[10px] font-bold">2</span>
-                                        AI extracts & solves questions
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <span className="w-4 h-4 rounded-full bg-white border flex items-center justify-center text-[10px] font-bold">3</span>
-                                        Review, edit, and verify
-                                    </li>
-                                </ul>
+                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                    <h4 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+                                        <Info className="w-4 h-4 text-indigo-600" /> How it works
+                                    </h4>
+                                    <ul className="space-y-2 text-xs text-slate-600">
+                                        <li className="flex items-center gap-2">
+                                            <span className="w-4 h-4 rounded-full bg-white border flex items-center justify-center text-[10px] font-bold">1</span>
+                                            Upload PDF with MCQs
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <span className="w-4 h-4 rounded-full bg-white border flex items-center justify-center text-[10px] font-bold">2</span>
+                                            AI extracts & solves questions
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <span className="w-4 h-4 rounded-full bg-white border flex items-center justify-center text-[10px] font-bold">3</span>
+                                            Review, edit, and verify
+                                        </li>
+                                    </ul>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            ) : (
+                <ManualQuestionEntry onQuestionAdded={refetch} />
+            )
+            }
 
             {/* Filters Section */}
             <Card className="border-slate-200">
@@ -498,6 +702,57 @@ export default function QuestionExtractor() {
                 </CardContent>
             </Card>
 
+            {/* Bulk Actions Bar */}
+            {selectedIds.size > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-6 z-50 animate-in slide-in-from-bottom-4 items-center">
+                    <span className="font-bold text-sm">{selectedIds.size} selected</span>
+                    <div className="h-4 w-px bg-slate-700" />
+                    <div className="flex items-center gap-2">
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-white hover:text-white hover:bg-slate-800 h-8"
+                            onClick={handleBulkVerify}
+                        >
+                            <CheckCircle className="w-4 h-4 mr-2" />
+                            Approve All
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-rose-400 hover:text-rose-300 hover:bg-slate-800 h-8"
+                            onClick={handleBulkDelete}
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete All
+                        </Button>
+                    </div>
+                    <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 rounded-full hover:bg-slate-800 ml-2"
+                        onClick={() => setSelectedIds(new Set())}
+                    >
+                        <span className="sr-only">Clear selection</span>
+                        <X className="w-4 h-4" />
+                    </Button>
+                </div>
+            )}
+
+            {/* Questions List Header with Select All */}
+            {questions.length > 0 && (
+                <div className="flex items-center gap-2 px-2">
+                    <Checkbox
+                        checked={questions.length > 0 && questions.every(q => selectedIds.has(q.local_id))}
+                        onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+                        className="border-slate-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                    />
+                    <Label className="text-sm font-medium text-slate-600 cursor-pointer" onClick={() => handleSelectAll(!(questions.length > 0 && questions.every(q => selectedIds.has(q.local_id))))}>
+                        Select All on Page
+                    </Label>
+                </div>
+            )}
+
             {/* Questions List */}
             <div className="space-y-3">
                 {loading ? (
@@ -509,17 +764,71 @@ export default function QuestionExtractor() {
                         No questions found
                     </div>
                 ) : (
-                    questions.map((q, idx) => (
-                        <QuestionCard
-                            key={q.local_id}
-                            q={q}
-                            idx={(currentPage - 1) * filters.itemsPerPage + idx}
-                            onDelete={handleDelete}
-                            onUpdate={updateQuestionLocally}
-                            onVerify={() => handleVerify(q)}
-                        />
-                    ))
+
+                    (() => {
+                        // Group questions by passage_id
+                        const passageGroups: Record<string, Question[]> = {};
+                        const standaloneQuestions: Question[] = [];
+
+                        questions.forEach(q => {
+                            if (q.passage_id) {
+                                if (!passageGroups[q.passage_id]) {
+                                    passageGroups[q.passage_id] = [];
+                                }
+                                passageGroups[q.passage_id].push(q);
+                            } else {
+                                standaloneQuestions.push(q);
+                            }
+                        });
+
+
+                        const renderedPassageIds = new Set<string>();
+
+                        return questions.map((q, idx) => {
+                            // If this question is part of a passage
+                            if (q.passage_id) {
+                                // If we haven't rendered this passage group yet
+                                if (!renderedPassageIds.has(q.passage_id)) {
+                                    renderedPassageIds.add(q.passage_id);
+                                    const group = passageGroups[q.passage_id];
+                                    return (
+                                        <PassageGroup
+                                            key={q.passage_id}
+                                            passageId={q.passage_id}
+                                            passageContent={q.passage_content}
+                                            passageImage={q.passage_image}
+                                            questions={group}
+                                            startIndex={(currentPage - 1) * filters.itemsPerPage + idx}
+                                            onDelete={handleDelete}
+                                            onUpdate={updateQuestionLocally}
+                                            onVerify={handleVerify}
+                                            selectedIds={selectedIds}
+                                            onToggleSelect={handleToggleSelect}
+                                        />
+                                    );
+                                }
+                                // If already rendered (packaged in the group above), return null
+                                return null;
+                            }
+
+                            // Standalone question
+                            return (
+                                <QuestionCard
+                                    key={q.local_id}
+                                    q={q}
+                                    idx={(currentPage - 1) * filters.itemsPerPage + idx}
+                                    onDelete={handleDelete}
+                                    onUpdate={updateQuestionLocally}
+                                    onVerify={() => handleVerify(q)}
+                                    isSelected={selectedIds.has(q.local_id)}
+                                    onToggleSelect={handleToggleSelect}
+                                />
+                            );
+                        });
+                    })()
                 )}
+
+
 
                 {/* Pagination */}
                 {totalPages > 1 && (
@@ -546,7 +855,7 @@ export default function QuestionExtractor() {
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
 
@@ -556,13 +865,17 @@ function QuestionCard({
     idx,
     onDelete,
     onUpdate,
-    onVerify
+    onVerify,
+    isSelected,
+    onToggleSelect
 }: {
     q: Question;
     idx: number;
     onDelete: (id: string) => void;
     onUpdate: (id: string, key: string, value: any) => void;
     onVerify: () => void;
+    isSelected?: boolean;
+    onToggleSelect?: (id: string, checked: boolean) => void;
 }) {
     const [open, setOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<string>("edit");
@@ -595,10 +908,21 @@ function QuestionCard({
     return (
         <Card className={`transition-all ${open ? 'border-indigo-200 shadow-md ring-1 ring-indigo-50' : 'border-slate-200 hover:border-slate-300'}`}>
             <div
-                className="p-4 flex items-center gap-4 cursor-pointer select-none"
-                onClick={() => setOpen(!open)}
+                className="p-4 flex items-center gap-4 select-none"
             >
-                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400 border shrink-0">
+                {onToggleSelect && (
+                    <div onClick={(e) => e.stopPropagation()}>
+                        <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked) => onToggleSelect(q.local_id, checked as boolean)}
+                            className="border-slate-300 data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                        />
+                    </div>
+                )}
+                <div
+                    className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-400 border shrink-0 cursor-pointer"
+                    onClick={() => setOpen(!open)}
+                >
                     {idx + 1}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -1000,6 +1324,89 @@ function QuestionCard({
                                 <Trash2 className="w-4 h-4" />
                             </button>
                         </div>
+                    </div>
+                </CardContent>
+            )}
+        </Card>
+    );
+}
+
+// --- Passage Group Component ---
+function PassageGroup({
+    passageId,
+    passageContent,
+    passageImage,
+    questions,
+    startIndex,
+    onDelete,
+    onUpdate,
+    onVerify,
+    selectedIds,
+    onToggleSelect
+}: {
+    passageId: string;
+    passageContent?: string | null;
+    passageImage?: string | null;
+    questions: Question[];
+    startIndex: number;
+    onDelete: (id: string) => void;
+    onUpdate: (id: string, key: string, value: any) => void;
+    onVerify: (q: Question) => void;
+    selectedIds?: Set<string>;
+    onToggleSelect?: (id: string, checked: boolean) => void;
+}) {
+    const [isExpanded, setIsExpanded] = useState(true);
+
+    return (
+        <Card className="border-indigo-200 bg-indigo-50/30">
+            <div className="p-4 border-b border-indigo-100 flex items-center justify-between bg-indigo-50/50">
+                <div className="flex items-center gap-3">
+                    <div className="bg-indigo-100 text-indigo-700 p-2 rounded-lg">
+                        <BookOpen className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-indigo-900">Reading Passage Group</h3>
+                        <p className="text-xs text-indigo-600">{questions.length} questions associated</p>
+                    </div>
+                </div>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                >
+                    <ChevronDown className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                </Button>
+            </div>
+
+            {isExpanded && (
+                <CardContent className="p-4 space-y-6">
+                    {/* Passage Content */}
+                    <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
+                        <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Passage Content</Label>
+                        {passageImage && (
+                            <div className="mb-4">
+                                <img src={passageImage} alt="Passage" className="max-h-64 object-contain rounded-lg border border-slate-200" />
+                            </div>
+                        )}
+                        <div className="prose prose-sm max-w-none text-slate-700 bg-slate-50 p-4 rounded-lg border border-slate-100 max-h-96 overflow-y-auto">
+                            <MarkdownLatexRenderer content={passageContent || "*No content available*"} />
+                        </div>
+                    </div>
+
+                    {/* Questions */}
+                    <div className="space-y-3 pl-4 border-l-2 border-indigo-200">
+                        {questions.map((q, idx) => (
+                            <QuestionCard
+                                key={q.local_id}
+                                q={q}
+                                idx={startIndex + idx}
+                                onDelete={onDelete}
+                                onUpdate={onUpdate}
+                                onVerify={() => onVerify(q)}
+                                isSelected={selectedIds?.has(q.local_id)}
+                                onToggleSelect={onToggleSelect}
+                            />
+                        ))}
                     </div>
                 </CardContent>
             )}

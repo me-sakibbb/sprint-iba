@@ -17,6 +17,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { checkIsCorrect } from "@/utils/answerValidation";
 import { MarkdownText } from "@/components/MarkdownText";
 import PracticeResults from "@/components/practice/PracticeResults";
+import PracticeSession from "@/components/practice/PracticeSession";
+import type { Tables } from "@/integrations/supabase/types";
 import {
     awardPracticeAnswerPoints,
     awardSessionCompletionBonus
@@ -30,17 +32,7 @@ interface StudyPracticeProps {
     onPracticeComplete?: (attempted: number, correct: number) => void;
 }
 
-interface Question {
-    id: string;
-    question_text: string;
-    options: string[] | null;
-    correct_answer: string | null;
-    explanation: string | null;
-    difficulty: string | null;
-    image_url?: string | null;
-    topic?: string | null;
-    subtopic?: string | null;
-}
+type Question = Tables<'questions'>;
 
 type PracticeStep = 'loading' | 'selector' | 'practicing' | 'results';
 
@@ -57,6 +49,7 @@ export default function StudyPractice({
     const [allEligibleQuestions, setAllEligibleQuestions] = useState<Question[]>([]);
     const [sessionQuestions, setSessionQuestions] = useState<Question[]>([]);
     const [mistakeCount, setMistakeCount] = useState(0);
+    const [passages, setPassages] = useState<Record<string, any>>({});
 
     // Active session state
     const [sessionId, setSessionId] = useState<string | null>(null);
@@ -135,20 +128,106 @@ export default function StudyPractice({
             const newQuestions = allEligibleQuestions.filter(q => !progressMap.has(q.id));
             const mastered = allEligibleQuestions.filter(q => progressMap.get(q.id) === true);
 
+            // Grouping Helper
+            const createGroups = (qs: Question[]) => {
+                const groups: Record<string, Question[]> = {};
+                const standalone: Question[] = [];
+                qs.forEach(q => {
+                    if (q.passage_id) {
+                        if (!groups[q.passage_id]) groups[q.passage_id] = [];
+                        groups[q.passage_id].push(q);
+                    } else {
+                        standalone.push(q);
+                    }
+                });
+
+                // Sort groups serially
+                Object.values(groups).forEach(g => g.sort((a, b) => a.question_text.localeCompare(b.question_text)));
+
+                // Return mixed and shuffled pool of (Group | Question)
+                const pool = [...Object.values(groups), ...standalone];
+                return pool.sort(() => Math.random() - 0.5);
+            };
+
             let selected: Question[] = [];
+            const targetCount = 10;
 
             if (mode === 'mistakes') {
-                selected = [...mistakes].sort(() => Math.random() - 0.5);
+                const mistakesPool = createGroups(mistakes);
+                let count = 0;
+                for (const item of mistakesPool) {
+                    if (Array.isArray(item)) {
+                        selected.push(...item);
+                        count += item.length;
+                    } else {
+                        selected.push(item);
+                        count++;
+                    }
+                }
+                // No limit on mistakes mode? Previous code didn't slice? 
+                // Ah, previous code: `selected = [...mistakes].sort(...)`. No slice? 
+                // Wait, logic says `PriorityPool.slice(0, 10)`. But mistakes mode was `[...mistakes]`.
+                // If mistakes list is huge, that's bad. But `StudyPractice` usually has limited scope (Topic).
+                // Let's keep all mistakes for now, or slice if huge.
             } else {
-                const PriorityPool = [...mistakes, ...newQuestions].sort(() => Math.random() - 0.5);
-                if (PriorityPool.length >= 10) {
-                    selected = PriorityPool.slice(0, 10);
-                } else {
-                    selected = [...PriorityPool, ...mastered.sort(() => Math.random() - 0.5)].slice(0, 10);
+                // Mixed Mode: Priority = Mistakes -> New -> Mastered
+                const mistakesPool = createGroups(mistakes);
+                const newPool = createGroups(newQuestions);
+                const masteredPool = createGroups(mastered);
+
+                const fullPool = [...mistakesPool, ...newPool, ...masteredPool];
+                // We actually want to prioritize mistakes, then new, then mastered.
+                // Previous logic: `PriorityPool = [...mistakes, ...newQuestions]`.
+                // Let's keep that priority.
+
+                let count = 0;
+
+                // Add from mistakes
+                for (const item of mistakesPool) {
+                    if (count >= targetCount) break;
+                    if (Array.isArray(item)) { selected.push(...item); count += item.length; }
+                    else { selected.push(item); count++; }
+                }
+
+                // Add from new
+                if (count < targetCount) {
+                    for (const item of newPool) {
+                        if (count >= targetCount) break;
+                        if (Array.isArray(item)) { selected.push(...item); count += item.length; }
+                        else { selected.push(item); count++; }
+                    }
+                }
+
+                // Add from mastered
+                if (count < targetCount) {
+                    for (const item of masteredPool) {
+                        if (count >= targetCount) break;
+                        if (Array.isArray(item)) { selected.push(...item); count += item.length; }
+                        else { selected.push(item); count++; }
+                    }
                 }
             }
 
             if (selected.length === 0) return;
+
+            // Fetch passages
+            const passageIds = Array.from(new Set(selected.map(q => q.passage_id).filter(id => !!id))) as string[];
+            const passagesMap: Record<string, any> = {};
+
+            if (passageIds.length > 0) {
+                const { data: passagesData, error: passagesError } = await supabase
+                    .from('reading_passages')
+                    .select('*')
+                    .in('id', passageIds);
+
+                if (passagesError) throw passagesError;
+
+                (passagesData || []).forEach(p => {
+                    passagesMap[p.id] = p;
+                });
+            }
+
+            setPassages(passagesMap);
 
             // 2. Create practice session record
             const { data: session, error: sError } = await supabase
@@ -439,132 +518,36 @@ export default function StudyPractice({
                 answers={answers}
                 onRetry={initData}
                 vpEarned={vpEarned}
+                passages={passages}
             />
         );
     }
 
     // PRACTICING VIEW
     const currentQuestion = sessionQuestions[currentIndex];
-    const options = currentQuestion.options || [];
-    const labels = ['A', 'B', 'C', 'D', 'E'];
-    const currentProgress = ((currentIndex + 1) / sessionQuestions.length) * 100;
-    const userAnswer = answers[currentQuestion.id];
+
+    // Adapter for PracticeSession onAnswer
+    const onSessionAnswer = (answer: string, timeTaken?: number) => {
+        handleAnswer(answer);
+    };
 
     return (
-        <div className="space-y-6 max-w-3xl mx-auto py-2">
-            {/* Header info */}
-            <div className="flex items-center justify-between gap-4">
-                <div className="flex-1 space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-muted-foreground uppercase tracking-widest">
-                        <span>Question {currentIndex + 1} of {sessionQuestions.length}</span>
-                        <span>{Math.round(currentProgress)}%</span>
-                    </div>
-                    <Progress value={currentProgress} className="h-1.5 bg-accent" />
-                </div>
-                {/* Score badge */}
-                <Badge variant="secondary" className="h-8 px-3 gap-1.5 bg-primary/5 text-primary border-primary/10">
-                    <Target className="w-3.5 h-3.5" />
-                    {Object.keys(answers).filter(qid => {
-                        const q = sessionQuestions.find(sq => sq.id === qid);
-                        return q && checkIsCorrect(q.correct_answer, answers[qid], q.options);
-                    }).length} correct
-                </Badge>
-            </div>
-
-            {/* Question Card */}
-            <Card className="border-border/40 shadow-sm overflow-hidden">
-                <CardHeader className="pb-4">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Badge variant="outline" className="text-[10px] uppercase font-extrabold tracking-tighter">
-                            {currentQuestion.difficulty || 'Medium'}
-                        </Badge>
-                        {currentQuestion.subtopic && (
-                            <Badge variant="secondary" className="text-[10px] font-medium bg-muted/50">
-                                {currentQuestion.subtopic}
-                            </Badge>
-                        )}
-                    </div>
-                    <div className="text-xl leading-relaxed text-foreground/90 font-medium">
-                        <MarkdownText text={currentQuestion.question_text} />
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    {currentQuestion.image_url && (
-                        <div className="mt-2 rounded-xl overflow-hidden border bg-muted/30">
-                            <img src={currentQuestion.image_url} alt="Question Diagram" className="max-w-full h-auto mx-auto" />
-                        </div>
-                    )}
-
-                    {/* Options Grid */}
-                    <div className="grid gap-3 pt-2">
-                        {options.map((option, idx) => {
-                            const label = labels[idx];
-                            const isSelected = userAnswer === label;
-                            const isCorrect = checkIsCorrect(currentQuestion.correct_answer, label, options);
-
-                            // Styling logic
-                            let variant: 'default' | 'success' | 'error' | 'selected' = 'default';
-                            if (hasAnswered) {
-                                if (isCorrect) variant = 'success';
-                                else if (isSelected) variant = 'error';
-                            } else if (isSelected) {
-                                variant = 'selected';
-                            }
-
-                            return (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleAnswer(label)}
-                                    disabled={hasAnswered}
-                                    className={cn(
-                                        "w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-4 ring-offset-background cursor-pointer",
-                                        variant === 'default' && "border-border hover:border-primary/50 hover:bg-accent/5",
-                                        variant === 'selected' && "border-primary bg-primary/5 shadow-sm",
-                                        variant === 'success' && "border-green-500 bg-green-500/10 shadow-sm",
-                                        variant === 'error' && "border-red-500 bg-red-500/10",
-                                        hasAnswered && variant === 'default' && "opacity-50 grayscale-[0.5]"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-bold text-sm transition-colors",
-                                        variant === 'default' && "bg-muted text-muted-foreground",
-                                        variant === 'selected' && "bg-primary text-primary-foreground",
-                                        variant === 'success' && "bg-green-500 text-white",
-                                        variant === 'error' && "bg-red-500 text-white",
-                                    )}>
-                                        {label}
-                                    </div>
-                                    <div className="flex-1 pt-0.5 text-[0.95rem]">
-                                        <MarkdownText text={option} />
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-
-                    {/* Feedback & Explanation */}
-                    {hasAnswered && (
-                        <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                            {currentQuestion.explanation && (
-                                <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Sparkles className="w-5 h-5 text-primary" />
-                                        <h4 className="font-bold text-lg text-primary/90">Explanation</h4>
-                                    </div>
-                                    <div className="text-muted-foreground text-sm leading-relaxed prose-sm dark:prose-invert max-w-none">
-                                        <MarkdownText text={currentQuestion.explanation} />
-                                    </div>
-                                </div>
-                            )}
-
-                            <Button onClick={handleNext} className="w-full h-12 gradient-primary text-lg font-bold group shadow-lg shadow-primary/20">
-                                {currentIndex + 1 >= sessionQuestions.length ? "Finish Study Session" : "Next Question"}
-                                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                            </Button>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
+        <div className="py-2">
+            <PracticeSession
+                question={currentQuestion}
+                questionNumber={currentIndex + 1}
+                totalQuestions={sessionQuestions.length}
+                mode="untimed"
+                timeRemaining={null}
+                onAnswer={onSessionAnswer}
+                onNext={handleNext}
+                onComplete={handleNext} // handleNext handles completion if index >= length
+                onTimeUp={() => { }}
+                setTimeRemaining={() => { }}
+                timePerQuestion={0}
+                feedbackMode="immediate"
+                passages={passages}
+            />
         </div>
     );
 }

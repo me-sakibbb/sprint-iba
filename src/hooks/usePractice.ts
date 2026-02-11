@@ -1,13 +1,11 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Tables } from '@/integrations/supabase/types';
 import { awardPracticeAnswerPoints, awardSessionCompletionBonus } from '@/services/practicePointsService';
 import { toast } from 'sonner';
 import { checkIsCorrect } from '@/utils/answerValidation';
-import { ensureNonNegative } from '@/utils/pointCalculations';
-import { getUserStreak, updateLoginStreak, getStreakStats } from '@/services/streakService';
 
 type Question = Tables<'questions'>;
 type PracticeSession = Tables<'practice_sessions'>;
@@ -15,7 +13,7 @@ type PracticeSession = Tables<'practice_sessions'>;
 interface PracticeConfig {
     mode: 'timed' | 'untimed';
     timePerQuestion?: number; // seconds
-    subjects: string[];
+    selectedIds: string[]; // IDs of selected subjects/topics/subtopics
     questionCount: number;
     practiceMode?: 'normal' | 'mistakes'; // New: practice normal questions or mistakes only
     feedbackMode?: 'immediate' | 'deferred'; // Show answers immediately or at the end
@@ -30,6 +28,7 @@ interface PracticeState {
     isComplete: boolean;
     feedbackMode: 'immediate' | 'deferred';
     totalVpEarned: number; // Track VP during session
+    passages?: Record<string, any>; // id -> passage object
 }
 
 export function usePractice() {
@@ -45,40 +44,8 @@ export function usePractice() {
         isComplete: false,
         feedbackMode: 'deferred',
         totalVpEarned: 0,
+        passages: {},
     });
-
-    // Fetch available topics grouped by subject
-    const [topics, setTopics] = useState<Record<string, string[]>>({});
-
-    useEffect(() => {
-        async function fetchTopics() {
-            const { data, error } = await supabase
-                .from('questions')
-                .select('topic, subtopic')
-                .eq('is_verified', true);
-
-            if (error) {
-                console.error('Error fetching topics:', error);
-                return;
-            }
-
-            const grouped: Record<string, Set<string>> = {};
-            data?.forEach((q: any) => {
-                const subject = q.topic || 'Other';
-                const subtopic = q.subtopic || 'General';
-                if (!grouped[subject]) grouped[subject] = new Set();
-                grouped[subject].add(subtopic);
-            });
-
-            const result: Record<string, string[]> = {};
-            Object.entries(grouped).forEach(([subject, subtopics]) => {
-                result[subject] = Array.from(subtopics);
-            });
-            setTopics(result);
-        }
-
-        fetchTopics();
-    }, []);
 
     // Start a new practice session
     const startSession = useCallback(async (config: PracticeConfig) => {
@@ -89,6 +56,7 @@ export function usePractice() {
 
         try {
             let selectedQuestions: Question[] = [];
+            let passagesMap: Record<string, any> = {};
 
             // If practicing mistakes, fetch questions from mistake logs
             if (config.practiceMode === 'mistakes') {
@@ -108,8 +76,9 @@ export function usePractice() {
                     // Fallback: Get all unique question IDs from mistake_logs
                     const { data: directMistakes, error: directError } = await supabase
                         .from('mistake_logs')
-                        .select('question_id')
-                        .eq('user_id', user.id);
+                        .select('question_id, created_at')
+                        .eq('user_id', user.id)
+                        .order('created_at', { ascending: false }); // Newest mistakes first
 
                     if (directError) {
                         console.error('Direct query fallback also failed:', directError);
@@ -120,7 +89,7 @@ export function usePractice() {
                         throw new Error("You haven't made any mistakes yet! Go practice some new questions first.");
                     }
 
-                    // Get unique IDs
+                    // Get unique IDs maintaining order
                     mistakeQuestionIds = Array.from(new Set(directMistakes.map(m => m.question_id)));
                 } else if (mistakesData && mistakesData.length > 0) {
                     mistakeQuestionIds = mistakesData.map((m: any) => m.question_id);
@@ -136,39 +105,76 @@ export function usePractice() {
                         .select('*')
                         .in('id', mistakeQuestionIds);
 
-                    // Apply subject filter
-                    if (config.subjects.length > 0 && !config.subjects.includes('Overall')) {
-                        const subjects = config.subjects.filter(s => ['Math', 'English', 'Analytical'].includes(s));
-                        const subtopics = config.subjects.filter(s => !['Math', 'English', 'Analytical', 'Overall'].includes(s));
-
-                        if (subjects.length > 0 && subtopics.length > 0) {
-                            query = query.or(`topic.in.(${subjects.join(',')}), subtopic.in.(${subtopics.join(',')})`);
-                        } else if (subjects.length > 0) {
-                            query = query.in('topic', subjects);
-                        } else if (subtopics.length > 0) {
-                            query = query.in('subtopic', subtopics);
-                        }
+                    // Apply hierarchical filter
+                    if (config.selectedIds.length > 0 && !config.selectedIds.includes('Overall')) {
+                        const ids = config.selectedIds.join(',');
+                        // Filter questions where subject_id OR topic_id OR subtopic_id matches any of the selected IDs
+                        query = query.or(`subject_id.in.(${ids}),topic_id.in.(${ids}),subtopic_id.in.(${ids})`);
                     }
 
                     const { data: questions, error: fetchError } = await query;
 
                     if (fetchError) throw fetchError;
 
-                    // Sort by severity score (if available) or randomly
-                    const sortedQuestions = questions?.sort((a, b) => {
-                        const severityA = mistakeStats.find((m: any) => m.question_id === a.id)?.severity_score || 0;
-                        const severityB = mistakeStats.find((m: any) => m.question_id === b.id)?.severity_score || 0;
-                        return severityB - severityA;
-                    });
-
-                    selectedQuestions = (sortedQuestions || []).slice(0, config.questionCount) as Question[];
-
-                    if (selectedQuestions.length === 0) {
+                    if (!questions || questions.length === 0) {
                         throw new Error('No mistakes found matching your selected topics.');
                     }
+
+                    // Group by passage_id
+                    const groups: Record<string, Question[]> = {};
+                    const standalone: Question[] = [];
+
+                    questions.forEach(q => {
+                        if (q.passage_id) {
+                            if (!groups[q.passage_id]) groups[q.passage_id] = [];
+                            groups[q.passage_id].push(q);
+                        } else {
+                            standalone.push(q);
+                        }
+                    });
+
+                    // Sort groups based on the *first* mistake encountered in that passage (using mistakeQuestionIds order)
+                    // But within the group, sort questions serially (by id or some undefined "serial" order - usually creation or just accidental). 
+                    // Better: sort by ID or keep them as returned by DB (usually insert order). Let's sort by ID to be deterministic.
+                    Object.values(groups).forEach(group => {
+                        group.sort((a, b) => a.question_text.localeCompare(b.question_text)); // Lexicographical sort as proxy for serial if no explicit order
+                    });
+
+                    // Reconstruct the list: Passages first? Or mix?
+                    // User wants "Passage and all questions serially".
+                    // Let's iterate through mistakeQuestionIds to determine Group Selection Order
+                    const finalSelection: Question[] = [];
+                    const processedPassages = new Set<string>();
+                    const processedStandalone = new Set<string>();
+
+                    // Filter relevant questions first to a map for quick lookup
+                    const questionMap = new Map(questions.map(q => [q.id, q]));
+
+                    mistakeQuestionIds.forEach(id => {
+                        const q = questionMap.get(id);
+                        if (!q) return;
+
+                        if (q.passage_id) {
+                            if (!processedPassages.has(q.passage_id)) {
+                                processedPassages.add(q.passage_id);
+                                // Add ALL mistaken questions for this passage
+                                const group = groups[q.passage_id];
+                                if (group) {
+                                    finalSelection.push(...group);
+                                }
+                            }
+                        } else {
+                            if (!processedStandalone.has(q.id)) {
+                                processedStandalone.add(q.id);
+                                finalSelection.push(q);
+                            }
+                        }
+                    });
+
+                    selectedQuestions = finalSelection.slice(0, config.questionCount);
                 }
             } else {
-                // Normal practice mode: Get questions user hasn't answered yet
+                // Normal practice mode
                 const { data: answeredQuestions } = await supabase
                     .from('user_progress')
                     .select('question_id')
@@ -176,39 +182,86 @@ export function usePractice() {
 
                 const answeredIds = new Set(answeredQuestions?.map((p: any) => p.question_id) || []);
 
-                // Build query for questions
-                let query = supabase
-                    .from('questions')
-                    .select('*')
+                let query = supabase.from('questions').select('*');
 
-                // Filter by subjects/topics
-                if (config.subjects.length > 0 && !config.subjects.includes('Overall')) {
-                    const subjects = config.subjects.filter(s => ['Math', 'English', 'Analytical'].includes(s));
-                    const subtopics = config.subjects.filter(s => !['Math', 'English', 'Analytical', 'Overall'].includes(s));
-
-                    if (subjects.length > 0 && subtopics.length > 0) {
-                        query = query.or(`topic.in.(${subjects.join(',')}), subtopic.in.(${subtopics.join(',')})`);
-                    } else if (subjects.length > 0) {
-                        query = query.in('topic', subjects);
-                    } else if (subtopics.length > 0) {
-                        query = query.in('subtopic', subtopics);
-                    }
+                if (config.selectedIds.length > 0 && !config.selectedIds.includes('Overall')) {
+                    const ids = config.selectedIds.join(',');
+                    query = query.or(`subject_id.in.(${ids}),topic_id.in.(${ids}),subtopic_id.in.(${ids})`);
                 }
 
                 const { data: allQuestions, error: fetchError } = await query;
 
                 if (fetchError) throw fetchError;
 
-                // Filter out already answered questions
                 const unansweredQuestions = allQuestions?.filter((q: any) => !answeredIds.has(q.id)) || [];
 
-                // Shuffle and limit
-                const shuffled = unansweredQuestions.sort(() => Math.random() - 0.5);
-                selectedQuestions = shuffled.slice(0, config.questionCount) as Question[];
+                if (unansweredQuestions.length === 0) {
+                    throw new Error('No questions available for the selected filters. Try different topics or reset your progress.');
+                }
+
+                // Group by passage
+                const groups: Record<string, Question[]> = {};
+                const standalone: Question[] = [];
+
+                unansweredQuestions.forEach(q => {
+                    if (q.passage_id) {
+                        if (!groups[q.passage_id]) groups[q.passage_id] = [];
+                        groups[q.passage_id].push(q);
+                    } else {
+                        standalone.push(q);
+                    }
+                });
+
+                // Helper to shuffle array
+                const shuffle = <T>(array: T[]) => array.sort(() => Math.random() - 0.5);
+
+                // Shuffle groups and standalone
+                const shuffledGroups = shuffle(Object.values(groups));
+                const shuffledStandalone = shuffle(standalone);
+
+                // Select untill count reached
+                const selection: Question[] = [];
+                let count = 0;
+
+                // We can mix groups and standalone. Let's create a pool of items (Group | Question)
+                const pool = [...shuffledGroups, ...shuffledStandalone];
+                const shuffledPool = shuffle(pool);
+
+                for (const item of shuffledPool) {
+                    if (count >= config.questionCount) break;
+
+                    if (Array.isArray(item)) {
+                        // It's a group
+                        // Sort questions within group (e.g. by text length or alpha, assuming serial nature)
+                        // Real serial order requires 'order' field. We'll use text or ID as proxy.
+                        item.sort((a, b) => a.question_text.localeCompare(b.question_text));
+                        selection.push(...item);
+                        count += item.length;
+                    } else {
+                        selection.push(item);
+                        count++;
+                    }
+                }
+                selectedQuestions = selection;
+            }
+
+            // Fetch passages for selected questions
+            const passageIds = Array.from(new Set(selectedQuestions.map(q => q.passage_id).filter(id => !!id))) as string[];
+            if (passageIds.length > 0) {
+                const { data: passagesData, error: passagesError } = await supabase
+                    .from('reading_passages')
+                    .select('*')
+                    .in('id', passageIds);
+
+                if (passagesError) throw passagesError;
+
+                (passagesData || []).forEach(p => {
+                    passagesMap[p.id] = p;
+                });
             }
 
             if (selectedQuestions.length === 0) {
-                throw new Error('No questions available for the selected filters. Try different topics or reset your progress.');
+                throw new Error('No questions available for the selected filters.');
             }
 
             // Create session in database
@@ -218,7 +271,7 @@ export function usePractice() {
                     user_id: user.id,
                     mode: config.mode,
                     time_per_question: config.mode === 'timed' ? config.timePerQuestion : null,
-                    subjects: config.subjects,
+                    subjects: config.selectedIds,
                     total_questions: selectedQuestions.length,
                     correct_count: 0,
                 } as any)
@@ -236,6 +289,7 @@ export function usePractice() {
                 isComplete: false,
                 feedbackMode: config.feedbackMode || 'deferred',
                 totalVpEarned: 0,
+                passages: passagesMap // Add passages to state
             });
 
         } catch (err: any) {
@@ -437,7 +491,6 @@ export function usePractice() {
     return {
         loading,
         error,
-        topics,
         session: state.session,
         questions: state.questions,
         currentQuestion: state.questions[state.currentIndex],
@@ -447,6 +500,7 @@ export function usePractice() {
         isComplete: state.isComplete,
         feedbackMode: state.feedbackMode,
         totalVpEarned: state.totalVpEarned,
+        passages: state.passages, // Add passages to return object
         startSession,
         submitAnswer,
         nextQuestion,
