@@ -17,6 +17,17 @@ import {
 import { updateLoginStreak, getStreakStats } from '@/services/streakService';
 import { showPointToast } from '@/components/AchievementToast';
 
+// Streak celebration modal data
+interface StreakCelebrationData {
+    streakType: 'login' | 'practice';
+    streakCount: number;
+    vpAwarded: number;
+    multiplier: number;
+    basePoints: number;
+    bonusPoints: number;
+    nextMilestone: number | null;
+}
+
 export interface PointsData {
     totalVp: number;
     currentLevel: LevelDefinition;
@@ -75,6 +86,9 @@ export function usePoints() {
 
     const [showLevelUpAnimation, setShowLevelUpAnimation] = useState(false);
     const [levelUpData, setLevelUpData] = useState<LevelDefinition | null>(null);
+
+    const [showStreakModal, setShowStreakModal] = useState(false);
+    const [streakModalData, setStreakModalData] = useState<StreakCelebrationData | null>(null);
 
     // Fetch Level Definitions from DB
     useEffect(() => {
@@ -311,12 +325,17 @@ export function usePoints() {
         const checkLoginStreak = async () => {
             const result = await updateLoginStreak(user.id);
             if (result.vpAwarded > 0) {
-                showPointToast({
-                    amount: result.vpAwarded,
-                    reason: 'Daily Login Streak',
-                    type: 'streak',
-                    description: `${result.streakCount} day study streak! Keep it up.`
+                // Show celebration modal instead of toast
+                setStreakModalData({
+                    streakType: 'login',
+                    streakCount: result.streakCount,
+                    vpAwarded: result.vpAwarded,
+                    multiplier: result.multiplier,
+                    basePoints: result.basePoints,
+                    bonusPoints: result.bonusPoints,
+                    nextMilestone: result.nextMilestone,
                 });
+                setShowStreakModal(true);
                 fetchPoints();
             }
         };
@@ -384,6 +403,11 @@ export function usePoints() {
         setLevelUpData(null);
     }, []);
 
+    const closeStreakModal = useCallback(() => {
+        setShowStreakModal(false);
+        setStreakModalData(null);
+    }, []);
+
     return {
         ...data,
         awardPoints,
@@ -391,5 +415,8 @@ export function usePoints() {
         showLevelUpAnimation,
         levelUpData,
         closeLevelUpAnimation,
+        showStreakModal,
+        streakModalData,
+        closeStreakModal,
     };
 }

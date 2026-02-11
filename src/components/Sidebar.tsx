@@ -218,9 +218,9 @@ export default function AppSidebar({ ...props }: React.ComponentProps<typeof Sid
                             </SidebarMenuItem>
                             <SidebarMenuItem>
                                 <SidebarMenuButton
-                                    isActive={isActive("/game")}
+                                    isActive={isActive("/leaderboard")}
                                     tooltip="Leaderboard"
-                                    onClick={() => router.push("/game")}
+                                    onClick={() => router.push("/leaderboard")}
                                 >
                                     <Trophy />
                                     <span>Leaderboard</span>

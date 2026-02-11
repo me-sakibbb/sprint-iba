@@ -63,6 +63,10 @@ export async function updateLoginStreak(userId: string): Promise<{
     streakCount: number;
     vpAwarded: number;
     leveledUp: boolean;
+    multiplier: number;
+    basePoints: number;
+    bonusPoints: number;
+    nextMilestone: number | null;
 }> {
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,10 +78,22 @@ export async function updateLoginStreak(userId: string): Promise<{
             streakCount: data?.streakCount || 0,
             vpAwarded: data?.vpAwarded || 0,
             leveledUp: data?.leveledUp || false,
+            multiplier: data?.multiplier || 1.0,
+            basePoints: data?.basePoints || 0,
+            bonusPoints: data?.bonusPoints || 0,
+            nextMilestone: data?.nextMilestone || null,
         };
     } catch (error) {
         console.error('Error updating login streak:', error);
-        return { streakCount: 0, vpAwarded: 0, leveledUp: false };
+        return {
+            streakCount: 0,
+            vpAwarded: 0,
+            leveledUp: false,
+            multiplier: 1.0,
+            basePoints: 0,
+            bonusPoints: 0,
+            nextMilestone: null,
+        };
     }
 }
 
@@ -91,6 +107,10 @@ export async function updatePracticeStreak(
 ): Promise<{
     streakCount: number;
     vpAwarded: number;
+    multiplier: number;
+    basePoints: number;
+    bonusPoints: number;
+    nextMilestone: number | null;
 }> {
     try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -103,10 +123,21 @@ export async function updatePracticeStreak(
         return {
             streakCount: data?.streakCount || 0,
             vpAwarded: data?.vpAwarded || 0,
+            multiplier: data?.multiplier || 1.0,
+            basePoints: data?.basePoints || 0,
+            bonusPoints: data?.bonusPoints || 0,
+            nextMilestone: data?.nextMilestone || null,
         };
     } catch (error) {
         console.error('Error updating practice streak:', error);
-        return { streakCount: 0, vpAwarded: 0 };
+        return {
+            streakCount: 0,
+            vpAwarded: 0,
+            multiplier: 1.0,
+            basePoints: 0,
+            bonusPoints: 0,
+            nextMilestone: null,
+        };
     }
 }
 

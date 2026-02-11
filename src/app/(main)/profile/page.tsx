@@ -14,10 +14,11 @@ import SkillsInterests from "@/components/profile/SkillsInterests";
 import ProfileActivity from "@/components/profile/ProfileActivity";
 import { useVelocityPoints } from "@/hooks/useVelocityPoints";
 import { formatVPFull } from "@/utils/vpCalculations";
-import { User, Mail, School, Calendar, Phone, LogOut, Heart, MessageCircle, Trash2, Trophy, Zap } from "lucide-react";
+import { User, Mail, School, Calendar, Phone, LogOut, Heart, MessageCircle, Trash2, Trophy, Zap, Award } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import StreakStatsCard from "@/components/profile/StreakStatsCard";
+import QuickStats from "@/components/profile/QuickStats";
 
 interface Post {
     id: string;
@@ -49,10 +50,16 @@ const Profile = () => {
     const [userPosts, setUserPosts] = useState<Post[]>([]);
     const [loadingPosts, setLoadingPosts] = useState(true);
 
+    // User rank state
+    const [userRank, setUserRank] = useState<number | null>(null);
+    const [totalUsers, setTotalUsers] = useState<number>(0);
+    const [loadingRank, setLoadingRank] = useState(true);
+
     useEffect(() => {
         if (user) {
             fetchProfile();
             fetchUserPosts();
+            fetchUserRank();
         }
     }, [user]);
 
@@ -96,6 +103,27 @@ const Profile = () => {
             console.error("Error fetching user posts:", error);
         } finally {
             setLoadingPosts(false);
+        }
+    };
+
+    const fetchUserRank = async () => {
+        if (!user) return;
+        try {
+            setLoadingRank(true);
+            const { data, error } = await (supabase as any).rpc('get_user_rank', {
+                p_user_id: user.id,
+            });
+
+            if (error) throw error;
+
+            if (data && data.length > 0) {
+                setUserRank(data[0].global_rank);
+                setTotalUsers(data[0].total_users);
+            }
+        } catch (error) {
+            console.error("Error fetching user rank:", error);
+        } finally {
+            setLoadingRank(false);
         }
     };
 
@@ -287,10 +315,11 @@ const Profile = () => {
                     </CardContent>
                 </Card>
 
-                {/* VP Stats Card */}
+                {/* VP Stats and Content Grid */}
                 {!loadingVP && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="md:col-span-2 space-y-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Left Column - Main Content */}
+                        <div className="lg:col-span-2 space-y-6">
                             <Card className="border-border/40">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
@@ -299,7 +328,7 @@ const Profile = () => {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="grid grid-cols-2 gap-6">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                                         <div>
                                             <p className="text-sm text-muted-foreground mb-1">Current Level</p>
                                             <p className="text-2xl font-bold gradient-text">{currentLevel.name}</p>
@@ -313,18 +342,36 @@ const Profile = () => {
                                             <p className="text-2xl font-bold gradient-text">{formatVPFull(totalVp)}</p>
                                             <p className="text-xs text-muted-foreground mt-1">Keep sprinting!</p>
                                         </div>
+                                        <div>
+                                            <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1">
+                                                <Trophy className="w-4 h-4" />
+                                                Global Rank
+                                            </p>
+                                            {loadingRank ? (
+                                                <p className="text-2xl font-bold gradient-text">...</p>
+                                            ) : userRank ? (
+                                                <>
+                                                    <p className="text-2xl font-bold gradient-text">#{userRank}</p>
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        Top {totalUsers > 0 ? ((userRank / totalUsers) * 100).toFixed(1) : '0'}%
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <p className="text-2xl font-bold gradient-text">--</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </CardContent>
                             </Card>
 
                             <SkillsInterests isEditing={isEditing} />
+                            <QuickStats />
                         </div>
 
-                        <div className="md:col-span-1">
-                            <div className="space-y-6">
-                                <StreakStatsCard />
-                                <ProfileActivity />
-                            </div>
+                        {/* Right Column - Sidebar */}
+                        <div className="lg:col-span-1 space-y-6">
+                            <StreakStatsCard />
+                            <ProfileActivity />
                         </div>
                     </div>
                 )}

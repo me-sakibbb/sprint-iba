@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { GlobalModals } from "@/components/GlobalModals";
 import { useState } from "react";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -17,6 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     {children}
                     <Toaster />
                     <Sonner />
+                    <GlobalModals />
                 </AuthProvider>
             </TooltipProvider>
         </QueryClientProvider>
