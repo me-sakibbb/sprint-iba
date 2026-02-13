@@ -53,11 +53,20 @@ export default function StudyTopicSidebar({
     useEffect(() => {
         if (currentSubtopicId) {
             const parent = topics.find(t => t.children.some(c => c.id === currentSubtopicId));
+            const self = topics.find(t => t.id === currentSubtopicId);
+
             if (parent) {
                 setExpandedTopics(prev => {
                     if (prev.has(parent.id)) return prev;
                     const next = new Set(prev);
                     next.add(parent.id);
+                    return next;
+                });
+            } else if (self) {
+                setExpandedTopics(prev => {
+                    if (prev.has(self.id)) return prev;
+                    const next = new Set(prev);
+                    next.add(self.id);
                     return next;
                 });
             }
@@ -97,21 +106,23 @@ export default function StudyTopicSidebar({
                         : 0;
 
                     const isParentOfActive = topic.children.some(sub => sub.id === currentSubtopicId);
+                    const isActive = topic.id === currentSubtopicId;
+                    const isSelected = isActive || isParentOfActive;
 
                     return (
                         <div key={topic.id} className="mb-1">
                             {/* Topic Header */}
-                            <button
-                                onClick={() => toggleTopic(topic.id)}
-                                className={cn(
-                                    "w-full flex items-center justify-between px-4 py-3 text-left transition-colors group",
-                                    isParentOfActive
-                                        ? "bg-accent/60 hover:bg-accent/20"
-                                        : "hover:bg-accent/50",
-                                    !isParentOfActive && isExpanded && "bg-muted/50"
-                                )}
-                            >
-                                <div className="flex items-center gap-3 overflow-hidden">
+                            <div className={cn(
+                                "w-full flex items-center justify-between px-4 py-3 text-left transition-colors group cursor-pointer",
+                                isSelected
+                                    ? "bg-accent/60 hover:bg-accent/20"
+                                    : "hover:bg-accent/50",
+                                !isSelected && isExpanded && "bg-muted/50"
+                            )}>
+                                <button
+                                    onClick={() => onSelectSubtopic(topic)}
+                                    className="flex-1 flex items-center gap-3 overflow-hidden text-left"
+                                >
                                     <div className={cn(
                                         "w-5 h-5 flex items-center justify-center rounded text-xs font-bold shrink-0",
                                         isCompleted ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"
@@ -121,14 +132,22 @@ export default function StudyTopicSidebar({
                                     <span className="font-medium truncate text-sm">
                                         {topic.title}
                                     </span>
-                                </div>
-                                <ChevronRight
-                                    className={cn(
-                                        "w-4 h-4 text-muted-foreground transition-transform shrink-0",
-                                        isExpanded && "rotate-90"
-                                    )}
-                                />
-                            </button>
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleTopic(topic.id);
+                                    }}
+                                    className="p-1 hover:bg-black/5 rounded-sm"
+                                >
+                                    <ChevronRight
+                                        className={cn(
+                                            "w-4 h-4 text-muted-foreground transition-transform shrink-0",
+                                            isExpanded && "rotate-90"
+                                        )}
+                                    />
+                                </button>
+                            </div>
 
                             {/* Subtopic List */}
                             {isExpanded && (

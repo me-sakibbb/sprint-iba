@@ -193,7 +193,7 @@ export default function StudyTopicDetailPage({ params }: { params: Promise<{ top
     };
 
     const depth = currentTopic ? getDepth(currentTopic.id, allTopics) : 0;
-    const isSubtopic = depth >= 2;
+    const canHaveContent = depth >= 1; // Topics (depth 1) and Subtopics (depth >= 2) can have content
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-10">
@@ -226,8 +226,8 @@ export default function StudyTopicDetailPage({ params }: { params: Promise<{ top
                 {/* Actions for the topic itself could go here */}
             </div>
 
-            {/* Subtopics Grid (for Depth 0 & 1) */}
-            {!isSubtopic && (
+            {/* Subtopics Grid (for Depth 0) - Only show if we're at subject level and can't have direct content */}
+            {depth === 0 && (
                 <div className="space-y-4">
                     <div className="flex items-center justify-between px-1">
                         <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -273,8 +273,8 @@ export default function StudyTopicDetailPage({ params }: { params: Promise<{ top
                 </div>
             )}
 
-            {/* Content Tabs (Only for Subtopics - Depth >= 2) */}
-            {isSubtopic ? (
+            {/* Content Tabs (For Topics and Subtopics - Depth >= 1) */}
+            {canHaveContent ? (
                 <div className="mt-8">
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                         <div className="flex items-center justify-between mb-4">

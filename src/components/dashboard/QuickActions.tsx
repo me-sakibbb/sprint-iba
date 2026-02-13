@@ -2,8 +2,9 @@
 
 import { motion } from "framer-motion";
 import {
-    ClipboardList,
-    FileText,
+    Library,
+    Brain,
+    GraduationCap,
     Sparkles,
     BookOpen,
     Target,
@@ -15,9 +16,20 @@ import { Badge } from "@/components/ui/badge";
 
 const actions = [
     {
+        title: "My Study",
+        description: "Access your personalized study materials and track your topic progress.",
+        icon: Library,
+        href: "/my-study",
+        color: "text-emerald-500",
+        bgColor: "bg-emerald-500/10",
+        borderColor: "group-hover:border-emerald-500/50",
+        shadowColor: "group-hover:shadow-emerald-500/20",
+        comingSoon: false
+    },
+    {
         title: "Practice Mode",
         description: "Master topics at your own pace with adaptive questions.",
-        icon: ClipboardList,
+        icon: Brain,
         href: "/practice",
         color: "text-blue-500",
         bgColor: "bg-blue-500/10",
@@ -28,7 +40,7 @@ const actions = [
     {
         title: "Exams",
         description: "Take mock tests and live exams to simulate the real experience.",
-        icon: FileText,
+        icon: GraduationCap,
         href: "/exams",
         color: "text-purple-500",
         bgColor: "bg-purple-500/10",

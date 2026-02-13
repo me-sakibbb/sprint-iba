@@ -63,55 +63,22 @@ export default function StudyTopicPage({ params }: { params: Promise<{ slug: str
 
     const match = findRootAndType(allSubjects, slug);
 
-    // Redirect logic setup
+    // Canonical URL check - if current URL is flat, redirect to hierarchical
     let redirectDestination: string | null = null;
-    let showNoContent = false;
 
     if (match) {
         const { root, type, node } = match;
-
-        if (type === 'subject' || type === 'topic') {
-            let firstSubtopicSlug = null;
-
-            if (type === 'subject') {
-                for (const topic of root.children || []) {
-                    if (topic.children && topic.children.length > 0) {
-                        firstSubtopicSlug = topic.children[0].slug;
-                        break;
-                    }
-                }
-            } else if (type === 'topic') {
-                if (node.children?.[0]) {
-                    firstSubtopicSlug = node.children[0].slug;
-                }
-            }
-
-            if (firstSubtopicSlug && firstSubtopicSlug !== slug) {
-                // To build the hierarchal path, we need to find where firstSubtopicSlug belongs
-                let targetPath = `/my-study/${root.slug}`;
-                const topic = root.children?.find((t: any) => t.id === firstSubtopicSlug || t.slug === firstSubtopicSlug || t.children?.some((c: any) => c.slug === firstSubtopicSlug));
-
-                if (topic) {
-                    targetPath += `/${topic.slug}`;
-                    const subtopic = topic.children?.find((c: any) => c.slug === firstSubtopicSlug);
-                    if (subtopic) targetPath += `/${subtopic.slug}`;
-                }
-
-                redirectDestination = targetPath;
-            } else if (!firstSubtopicSlug) {
-                showNoContent = true;
-            }
-        }
-    }
-
-    // 2. Canonical URL check - if current URL is flat, redirect to hierarchical
-    if (!redirectDestination && match) {
-        const { root, type, node } = match;
         let expectedPath: string[] = [];
 
-        if (type === 'subject') expectedPath = [root.slug];
-        else if (type === 'topic') expectedPath = [root.slug, node.slug];
-        else if (type === 'subtopic') {
+        if (type === 'subject') {
+            // Subjects should redirect to first topic if they have one
+            const firstTopic = root.children?.[0];
+            if (firstTopic) {
+                redirectDestination = `/my-study/${root.slug}/${firstTopic.slug}`;
+            }
+        } else if (type === 'topic') {
+            expectedPath = [root.slug, node.slug];
+        } else if (type === 'subtopic') {
             const parentTopic = root.children?.find((t: any) => t.children?.some((c: any) => c.id === node.id));
             if (parentTopic) expectedPath = [root.slug, parentTopic.slug, node.slug];
             else expectedPath = [root.slug, node.slug];
@@ -195,18 +162,8 @@ export default function StudyTopicPage({ params }: { params: Promise<{ slug: str
         );
     }
 
-    // 3. Dry/Empty State
-    if (showNoContent) {
-        return (
-            <div className="max-w-6xl mx-auto pb-8 p-6 text-center">
-                <Button variant="ghost" className="mb-4" onClick={() => router.push("/my-study")}>
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back
-                </Button>
-                <h2 className="text-xl font-semibold">No content available yet</h2>
-                <p className="text-muted-foreground">This topic has no subtopics or materials.</p>
-            </div>
-        );
-    }
+    // 3. Dry/Empty State check removed as showNoContent logic was removed
+    // We can rely on contentNode check below
 
     const { root, type, node } = match!;
 
@@ -382,8 +339,8 @@ export default function StudyTopicPage({ params }: { params: Promise<{ slug: str
 
                                     <TabsContent value="practice" className="mt-0">
                                         <StudyPractice
-                                            topicName={contentNode.topic_name}
-                                            subtopicName={contentNode.subtopic_name}
+                                            topicName={match.type !== 'subtopic' ? (contentNode.topic_name || contentNode.title) : null}
+                                            subtopicName={match.type === 'subtopic' ? (contentNode.subtopic_name || contentNode.title) : null}
                                             topicId={contentNode.id}
                                             onPracticeComplete={(attempted, correct) =>
                                                 updatePracticeProgress(contentNode.id, attempted, correct)

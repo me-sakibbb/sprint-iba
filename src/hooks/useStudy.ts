@@ -77,26 +77,41 @@ export function useStudyTopics() {
                 });
             }
 
-            // Fetch question counts by topic_name
+            // Fetch question counts by topic_name AND subtopic_name
             const topicNames = (data || [])
                 .filter(t => t.topic_name)
                 .map(t => t.topic_name!);
 
-            if (topicNames.length > 0) {
-                const { data: questions } = await supabase
-                    .from('questions')
-                    .select('topic')
-                    .in('topic', topicNames)
-                    .eq('is_verified', true);
+            const subtopicNames = (data || [])
+                .filter(t => t.subtopic_name)
+                .map(t => t.subtopic_name!);
+
+            if (topicNames.length > 0 || subtopicNames.length > 0) {
+                let query = supabase.from('questions').select('topic, subtopic').eq('is_verified', true);
+
+                // We need an OR condition: topic in topicNames OR subtopic in subtopicNames
+                // Supabase doesn't support clean OR across different fields with IN easily in one go without raw filter
+                // But we can just fetch all verified questions with these topics/subtopics.
+                // Or simpler: just fetch counts.
+
+                const { data: questions } = await query; // Fetching all effectively for now to client-side count, or use RPC if performance needed. 
+                // Given the scale, fetching 'topic, subtopic' for all verified is okay for now, or we can split queries.
 
                 if (questions) {
-                    const qCountMap: Record<string, number> = {};
+                    const qTopicCountMap: Record<string, number> = {};
+                    const qSubtopicCountMap: Record<string, number> = {};
+
                     questions.forEach((q: any) => {
-                        qCountMap[q.topic] = (qCountMap[q.topic] || 0) + 1;
+                        if (q.topic) qTopicCountMap[q.topic] = (qTopicCountMap[q.topic] || 0) + 1;
+                        if (q.subtopic) qSubtopicCountMap[q.subtopic] = (qSubtopicCountMap[q.subtopic] || 0) + 1;
                     });
+
                     topicMap.forEach(topic => {
                         if (topic.topic_name) {
-                            topic.question_count = qCountMap[topic.topic_name] || 0;
+                            topic.question_count = (topic.question_count || 0) + (qTopicCountMap[topic.topic_name] || 0);
+                        }
+                        if (topic.subtopic_name) {
+                            topic.question_count = (topic.question_count || 0) + (qSubtopicCountMap[topic.subtopic_name] || 0);
                         }
                     });
                 }
