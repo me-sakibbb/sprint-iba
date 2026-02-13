@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useStudyProgress } from "@/hooks/useStudyProgress";
 import { checkIsCorrect } from "@/utils/answerValidation";
 import { MarkdownText } from "@/components/MarkdownText";
 import PracticeResults from "@/components/practice/PracticeResults";
@@ -257,6 +258,8 @@ export default function StudyPractice({
         }
     };
 
+    const { recordAnswerAndMistake } = useStudyProgress();
+
     const handleAnswer = async (answer: string) => {
         if (hasAnswered || !user) return;
 
@@ -267,27 +270,18 @@ export default function StudyPractice({
         setAnswers(prev => ({ ...prev, [question.id]: answer }));
 
         try {
-            // 1. Record in user_progress (Upsert)
-            await supabase.from('user_progress').upsert({
-                user_id: user.id,
-                question_id: question.id,
-                is_correct: isCorrect,
-                answered_at: new Date().toISOString()
-            }, { onConflict: 'user_id, question_id' });
-
-            // 2. If incorrect, log in mistake_logs
-            if (!isCorrect) {
-                await supabase.from('mistake_logs').insert({
-                    user_id: user.id,
-                    question_id: question.id,
-                    user_answer: answer,
-                    correct_answer: question.correct_answer || 'Unknown',
-                    context: 'practice',
-                    topic: question.topic,
-                    subtopic: question.subtopic,
-                    difficulty: question.difficulty
-                });
-            }
+            // Record progress and log mistake if incorrect
+            await recordAnswerAndMistake({
+                userId: user.id,
+                questionId: question.id,
+                isCorrect,
+                userAnswer: answer,
+                correctAnswer: question.correct_answer || 'Unknown',
+                context: 'practice',
+                topic: question.topic,
+                subtopic: question.subtopic,
+                difficulty: question.difficulty,
+            });
 
             // 3. Award points via service
             const result = await awardPracticeAnswerPoints(

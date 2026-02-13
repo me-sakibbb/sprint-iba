@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuestionExtraction } from '@/hooks/useQuestionExtraction';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -84,21 +84,17 @@ export function ManualQuestionEntry({ onQuestionAdded }: { onQuestionAdded?: () 
 
         setIsSubmitting(true);
         try {
-            const { error } = await supabase.from('questions').insert({
+            const { success, error } = await createManualQuestion({
                 question_text: singleQuestion.question_text,
-                question_text_formatted: singleQuestion.question_text, // Assuming basic text for manual entry
                 options: singleQuestion.options,
-                options_formatted: singleQuestion.options,
                 correct_answer: singleQuestion.correct_answer,
                 explanation: singleQuestion.explanation,
-                explanation_formatted: singleQuestion.explanation,
                 topic: singleQuestion.topic,
                 subtopic: singleQuestion.subtopic,
-                difficulty: singleQuestion.difficulty.toLowerCase(),
-                is_verified: true, // Manual entry implies verification
+                difficulty: singleQuestion.difficulty,
             });
 
-            if (error) throw error;
+            if (!success) throw error;
 
             toast.success('Question added successfully');
             setSingleQuestion({ ...INITIAL_QUESTION, id: crypto.randomUUID() });
@@ -123,35 +119,25 @@ export function ManualQuestionEntry({ onQuestionAdded }: { onQuestionAdded?: () 
         setIsSubmitting(true);
         try {
             // 1. Insert Passage
-            const { data: passageData, error: passageError } = await supabase
-                .from('reading_passages')
-                .insert({ content: passageContent })
-                .select()
-                .single();
+            const { success: passageSuccess, passageId, error: passageError } = await createPassage(passageContent);
 
-            if (passageError) throw passageError;
+            if (!passageSuccess) throw passageError;
 
             // 2. Insert Questions linked to Passage
-            const questionsToInsert = passageQuestions.map(q => ({
-                question_text: q.question_text,
-                question_text_formatted: q.question_text,
-                options: q.options,
-                options_formatted: q.options,
-                correct_answer: q.correct_answer,
-                explanation: q.explanation,
-                explanation_formatted: q.explanation,
-                topic: q.topic,
-                subtopic: q.subtopic,
-                difficulty: q.difficulty.toLowerCase(),
-                is_verified: true,
-                passage_id: passageData.id
-            }));
+            for (const q of passageQuestions) {
+                const { success, error } = await createManualQuestion({
+                    question_text: q.question_text,
+                    options: q.options,
+                    correct_answer: q.correct_answer,
+                    explanation: q.explanation,
+                    topic: q.topic,
+                    subtopic: q.subtopic,
+                    difficulty: q.difficulty,
+                    passage_id: passageId,
+                });
 
-            const { error: questionsError } = await supabase
-                .from('questions')
-                .insert(questionsToInsert);
-
-            if (questionsError) throw questionsError;
+                if (!success) throw error;
+            }
 
             toast.success('Passage and questions added successfully');
             setPassageContent('');

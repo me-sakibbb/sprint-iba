@@ -7,26 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import BadgeGallery from "@/components/badges/BadgeGallery";
 import SkillsInterests from "@/components/profile/SkillsInterests";
 import ProfileActivity from "@/components/profile/ProfileActivity";
 import { useVelocityPoints } from "@/hooks/useVelocityPoints";
+import { useProfile } from "@/hooks/useProfile";
 import { formatVPFull } from "@/utils/vpCalculations";
 import { User, Mail, School, Calendar, Phone, LogOut, Heart, MessageCircle, Trash2, Trophy, Zap, Award } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useRouter } from "next/navigation";
 import StreakStatsCard from "@/components/profile/StreakStatsCard";
 import QuickStats from "@/components/profile/QuickStats";
-
-interface Post {
-    id: string;
-    content: string;
-    likes_count: number;
-    comments_count: number;
-    created_at: string;
-}
 
 const Profile = () => {
     const { user, loading: authLoading, signOut } = useAuth();
@@ -37,144 +28,64 @@ const Profile = () => {
             router.push("/auth");
         }
     }, [user, authLoading, router]);
-    const { totalVp, currentLevel, loading: loadingVP } = useVelocityPoints();
-    const [loading, setLoading] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
 
+    const { totalVp, currentLevel, loading: loadingVP } = useVelocityPoints();
+    const {
+        profile,
+        posts,
+        rank,
+        loading: loadingProfile,
+        loadingPosts,
+        loadingRank,
+        updateProfile: updateProfileData,
+        deletePost: deletePostData,
+    } = useProfile(user?.id);
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    // Form state
     const [fullName, setFullName] = useState("");
     const [college, setCollege] = useState("");
     const [hscYear, setHscYear] = useState("");
     const [phone, setPhone] = useState("");
     const [avatarUrl, setAvatarUrl] = useState("");
 
-    const [userPosts, setUserPosts] = useState<Post[]>([]);
-    const [loadingPosts, setLoadingPosts] = useState(true);
-
-    // User rank state
-    const [userRank, setUserRank] = useState<number | null>(null);
-    const [totalUsers, setTotalUsers] = useState<number>(0);
-    const [loadingRank, setLoadingRank] = useState(true);
-
+    // Initialize form with profile data when it loads
     useEffect(() => {
-        if (user) {
-            fetchProfile();
-            fetchUserPosts();
-            fetchUserRank();
+        if (profile) {
+            setFullName(profile.full_name || user?.user_metadata?.full_name || "");
+            setAvatarUrl(profile.avatar_url || user?.user_metadata?.avatar_url || "");
         }
-    }, [user]);
-
-    const fetchProfile = async () => {
-        if (!user) return;
-        try {
-            // Fetch from public.profiles first
-            const { data: profileData, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-
-            if (profileData) {
-                setFullName(profileData.full_name || user.user_metadata?.full_name || "");
-                setAvatarUrl(profileData.avatar_url || user.user_metadata?.avatar_url || "");
-            }
-
-            // Fallback/Additional data from metadata
+        // Initialize from user metadata
+        if (user) {
             setCollege(user.user_metadata?.college || "");
             setHscYear(user.user_metadata?.hsc_year || "");
             setPhone(user.user_metadata?.phone || "");
-
-        } catch (error) {
-            console.error("Error fetching profile:", error);
         }
-    };
-
-    const fetchUserPosts = async () => {
-        if (!user) return;
-        try {
-            const { data, error } = await (supabase as any)
-                .from('posts')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setUserPosts((data as any) || []);
-        } catch (error) {
-            console.error("Error fetching user posts:", error);
-        } finally {
-            setLoadingPosts(false);
-        }
-    };
-
-    const fetchUserRank = async () => {
-        if (!user) return;
-        try {
-            setLoadingRank(true);
-            const { data, error } = await (supabase as any).rpc('get_user_rank', {
-                p_user_id: user.id,
-            });
-
-            if (error) throw error;
-
-            if (data && data.length > 0) {
-                setUserRank(data[0].global_rank);
-                setTotalUsers(data[0].total_users);
-            }
-        } catch (error) {
-            console.error("Error fetching user rank:", error);
-        } finally {
-            setLoadingRank(false);
-        }
-    };
+    }, [profile, user]);
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        try {
-            // 1. Update auth.users metadata
-            const { error: authError } = await supabase.auth.updateUser({
-                data: {
-                    full_name: fullName,
-                    college: college,
-                    hsc_year: hscYear,
-                    phone: phone,
-                    avatar_url: avatarUrl,
-                },
-            });
-            if (authError) throw authError;
+        const { error } = await updateProfileData({
+            full_name: fullName,
+            college,
+            hsc_year: hscYear,
+            phone,
+            avatar_url: avatarUrl,
+        });
 
-            // 2. Update public.profiles
-            const { error: profileError } = await supabase
-                .from('profiles')
-                .update({
-                    full_name: fullName,
-                    avatar_url: avatarUrl,
-                })
-                .eq('id', user?.id as string);
-
-            if (profileError) throw profileError;
-
-            toast.success("Profile updated successfully!");
+        if (!error) {
             setIsEditing(false);
-        } catch (error: any) {
-            toast.error(error.message || "Failed to update profile");
-        } finally {
-            setLoading(false);
         }
+        setLoading(false);
     };
 
     const handleDeletePost = async (postId: string) => {
         if (!confirm("Are you sure you want to delete this post?")) return;
-        try {
-            const { error } = await (supabase as any).from('posts').delete().eq('id', postId);
-            if (error) throw error;
-            toast.success("Post deleted");
-            setUserPosts(prev => prev.filter(p => p.id !== postId));
-        } catch (error) {
-            console.error("Error deleting post:", error);
-            toast.error("Failed to delete post");
-        }
+        await deletePostData(postId);
     };
 
     const handleSignOut = async () => {
@@ -349,11 +260,11 @@ const Profile = () => {
                                             </p>
                                             {loadingRank ? (
                                                 <p className="text-2xl font-bold gradient-text">...</p>
-                                            ) : userRank ? (
+                                            ) : rank ? (
                                                 <>
-                                                    <p className="text-2xl font-bold gradient-text">#{userRank}</p>
+                                                    <p className="text-2xl font-bold gradient-text">#{rank.global_rank}</p>
                                                     <p className="text-xs text-muted-foreground mt-1">
-                                                        Top {totalUsers > 0 ? ((userRank / totalUsers) * 100).toFixed(1) : '0'}%
+                                                        Top {rank.total_users > 0 ? ((rank.global_rank / rank.total_users) * 100).toFixed(1) : '0'}%
                                                     </p>
                                                 </>
                                             ) : (
@@ -387,12 +298,12 @@ const Profile = () => {
                     <div className="space-y-4">
                         {loadingPosts ? (
                             <div className="text-center py-8 text-muted-foreground">Loading posts...</div>
-                        ) : userPosts.length === 0 ? (
+                        ) : posts.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground bg-card/50 rounded-xl border border-border/40">
                                 You haven't posted anything yet.
                             </div>
                         ) : (
-                            userPosts.map((post) => (
+                            posts.map((post) => (
                                 <Card key={post.id} className="border-border/40">
                                     <CardContent className="pt-6">
                                         <div className="flex justify-between items-start mb-2">

@@ -58,6 +58,8 @@ export default function LevelConfigPage() {
         setIsDialogOpen(true);
     };
 
+    const { uploadFile, getPublicUrl, uploading: uploadingStorage } = useStorage();
+
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (!e.target.files || e.target.files.length === 0) return;
 
@@ -65,25 +67,12 @@ export default function LevelConfigPage() {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-        setUploading(true);
-        try {
-            const { error: uploadError } = await supabase.storage
-                .from('level-icons')
-                .upload(fileName, file);
+        const uploadedPath = await uploadFile('level-icons', file, fileName);
 
-            if (uploadError) throw uploadError;
-
-            const { data } = supabase.storage
-                .from('level-icons')
-                .getPublicUrl(fileName);
-
-            setIconUrl(data.publicUrl);
+        if (uploadedPath) {
+            const publicUrl = getPublicUrl('level-icons', uploadedPath);
+            setIconUrl(publicUrl);
             toast.success("Icon uploaded successfully");
-        } catch (error: any) {
-            console.error("Upload error:", error);
-            toast.error("Error uploading icon: " + (error.message || "Unknown error"));
-        } finally {
-            setUploading(false);
         }
     };
 
@@ -373,10 +362,10 @@ export default function LevelConfigPage() {
                                         <div className="flex items-center gap-2">
                                             <Label
                                                 htmlFor="icon-upload"
-                                                className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-muted transition-colors text-sm font-medium ${uploading ? 'opacity-50 pointer-events-none' : ''}`}
+                                                className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 border rounded-md hover:bg-muted transition-colors text-sm font-medium ${uploadingStorage ? 'opacity-50 pointer-events-none' : ''}`}
                                             >
                                                 <Upload className="w-4 h-4" />
-                                                {uploading ? "Uploading..." : "Upload Image"}
+                                                {uploadingStorage ? "Uploading..." : "Upload Image"}
                                             </Label>
                                             <Input
                                                 id="icon-upload"
@@ -384,7 +373,7 @@ export default function LevelConfigPage() {
                                                 accept="image/*"
                                                 className="hidden"
                                                 onChange={handleFileUpload}
-                                                disabled={uploading}
+                                                disabled={uploadingStorage}
                                             />
                                         </div>
                                         <p className="text-xs text-muted-foreground">
@@ -399,7 +388,7 @@ export default function LevelConfigPage() {
                             <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
                                 Cancel
                             </Button>
-                            <Button type="submit" disabled={isSubmitting || uploading} className="min-w-[100px]">
+                            <Button type="submit" disabled={isSubmitting || uploadingStorage} className="min-w-[100px]">
                                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : (editingLevel ? "Save Changes" : "Create Level")}
                             </Button>
                         </DialogFooter>

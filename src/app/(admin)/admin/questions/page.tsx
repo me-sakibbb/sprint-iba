@@ -31,6 +31,7 @@ import { MarkdownLatexRenderer } from "@/components/admin/MarkdownLatexRenderer"
 import { useTaxonomy, useSubjects, useTopics, useSubtopics } from "@/hooks/useTaxonomy";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import dynamic from 'next/dynamic';
+import { useStorage } from "@/hooks/useStorage";
 
 const MDEditor = dynamic(
     () => import("@uiw/react-md-editor").then((mod) => mod.default),
@@ -40,6 +41,7 @@ import "@uiw/react-md-editor/markdown-editor.css";
 import "@uiw/react-markdown-preview/markdown.css";
 
 export default function QuestionExtractor() {
+    const { uploadFile, getPublicUrl } = useStorage();
     // Extraction state
     const [file, setFile] = useState<File | null>(null);
     const [pagesPerChunk, setPagesPerChunk] = useState(2);
@@ -983,20 +985,14 @@ function QuestionCard({
                                         try {
                                             toast.info("Uploading image...");
                                             const fileName = `manual_upload_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '_')}`;
-                                            const { data, error } = await supabase.storage
-                                                .from('question-images')
-                                                .upload(fileName, file, {
-                                                    contentType: file.type,
-                                                    upsert: true,
-                                                });
+                                            const path = await uploadFile('question-images', file, fileName);
 
-                                            if (error) throw error;
+                                            if (!path) {
+                                                toast.error("Failed to upload image");
+                                                return;
+                                            }
 
-                                            const { data: urlData } = supabase.storage
-                                                .from('question-images')
-                                                .getPublicUrl(data.path);
-
-                                            const imageUrl = urlData.publicUrl;
+                                            const imageUrl = getPublicUrl('question-images', path);
 
                                             // If no main image, set as main
                                             if (!q.image_url) {

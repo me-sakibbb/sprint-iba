@@ -1,64 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Users,
-    FileText,
     TrendingUp,
     Activity,
     ArrowUpRight,
     ArrowDownRight,
     BrainCircuit,
     BookOpen,
-    Settings
+    Settings,
+    FileText
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-
-interface Stats {
-    totalUsers: number;
-    totalQuestions: number;
-    activeToday: number;
-    newUsersThisWeek: number;
-}
+import { useAdminStats } from "@/hooks/useAdminStats";
 
 export default function AdminDashboard() {
-    const [stats, setStats] = useState<Stats>({
-        totalUsers: 0,
-        totalQuestions: 0,
-        activeToday: 0,
-        newUsersThisWeek: 0
-    });
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                // Fetch user count
-                const { count: userCount } = await supabase
-                    .from("profiles")
-                    .select("*", { count: "exact", head: true });
-
-                // Fetch question count
-                const { count: questionCount } = await supabase
-                    .from("questions")
-                    .select("*", { count: "exact", head: true });
-
-                setStats({
-                    totalUsers: userCount || 0,
-                    totalQuestions: questionCount || 0,
-                    activeToday: Math.floor(Math.random() * 50) + 10, // Placeholder
-                    newUsersThisWeek: Math.floor(Math.random() * 20) + 5 // Placeholder
-                });
-            } catch (error) {
-                console.error("Error fetching stats:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchStats();
-    }, []);
+    const { stats, loading } = useAdminStats();
 
     const statCards = [
         {

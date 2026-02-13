@@ -703,11 +703,75 @@ IMPORTANT REQUIREMENTS:
         }
     }, []);
 
+    /**
+     * Create a manual question (for ManualQuestionEntry component)
+     */
+    const createManualQuestion = useCallback(async (questionData: {
+        question_text: string;
+        options: string[];
+        correct_answer: string;
+        explanation: string;
+        topic: string;
+        subtopic: string;
+        difficulty: string;
+        subject_id?: string | null;
+        topic_id?: string | null;
+        subtopic_id?: string | null;
+        passage_id?: string | null;
+    }): Promise<{ success: boolean; error?: any }> => {
+        try {
+            const { error } = await (supabase as any).from('questions').insert({
+                question_text: questionData.question_text,
+                question_text_formatted: questionData.question_text,
+                options: questionData.options,
+                options_formatted: questionData.options,
+                correct_answer: questionData.correct_answer,
+                explanation: questionData.explanation,
+                explanation_formatted: questionData.explanation,
+                topic: questionData.topic,
+                subtopic: questionData.subtopic,
+                difficulty: questionData.difficulty.toLowerCase(),
+                is_verified: true, // Manual entry implies verification
+                subject_id: questionData.subject_id || null,
+                topic_id: questionData.topic_id || null,
+                subtopic_id: questionData.subtopic_id || null,
+                passage_id: questionData.passage_id || null,
+            });
+
+            if (error) throw error;
+            return { success: true };
+        } catch (error: any) {
+            console.error('Error creating manual question:', error);
+            return { success: false, error };
+        }
+    }, []);
+
+    /**
+     * Create a passage (for ManualQuestionEntry component)
+     */
+    const createPassage = useCallback(async (content: string): Promise<{ success: boolean; passageId?: string; error?: any }> => {
+        try {
+            const { data, error } = await supabase
+                .from('reading_passages')
+                .insert({ content })
+                .select()
+                .single();
+
+            if (error) throw error;
+            return { success: true, passageId: data.id };
+        } catch (error: any) {
+            console.error('Error creating passage:', error);
+            return { success: false, error };
+        }
+    }, []);
+
     return {
         extract,
         stop,
         reset,
         progress,
         isProcessing,
+        createManualQuestion,
+        createPassage,
     };
 }
